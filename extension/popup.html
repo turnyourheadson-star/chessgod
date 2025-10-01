@@ -18,80 +18,48 @@
         <img id="splashLogo" src="icons/icon128.png" alt="ChessGod logo" />
       </div>
       <h1 id="splashTitle" aria-hidden="true"><span id="splashTitleText"></span></h1>
-      <p id="splashTagline" aria-hidden="true">From Blunder to Brilliance!</p>
-      <h2 id="splashWelcome" aria-hidden="true"></h2>
-      <!-- From Uiverse.io by Li-Deheng -->
-      <button id="splashNext" class="button" aria-label="Continue to app">
-        <span>Continue</span>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 66 43">
-          <polygon points="39.58,4.46 44.11,0 66,21.5 44.11,43 39.58,38.54 56.94,21.5"></polygon>
-          <polygon points="19.79,4.46 24.32,0 46.21,21.5 24.32,43 19.79,38.54 37.15,21.5"></polygon>
-          <polygon points="0,4.46 4.53,0 26.42,21.5 4.53,43 0,38.54 17.36,21.5"></polygon>
-        </svg>
-      </button>
+      <div id="splashTagline" class="splash-tagline">From Blunder to Brilliance!</div>
+      <div id="platformChoices" class="platform-choices">
+        <div class="platform-circle left tooltip" data-platform="chesscom" data-tooltip="Chess.com">
+          <img src="icons/chess.com_logo.png" alt="Chess.com" class="platform-logo">
+        </div>
+        <div class="platform-circle right tooltip" data-platform="lichess" data-tooltip="Lichess.org">
+          <img src="icons/lichess.org_logo.png" alt="Lichess.org" class="platform-logo">
+        </div>
+      </div>
+      <div class="inputBox hidden">
+        <input required="" type="text">
+        <span>Username</span>
+      </div>
     </div>
   </div>
 
   <div id="mainUI" class="hidden" aria-hidden="true">
-    <div class="title-block">
-      <img src="icons/icon128.png" id="appIcon" alt="ChessGod" />
-      
-      <h1 class="app-title">ChessGod</h1>
-    </div>
-    <div class="controls-wrap">
-      <div class="controls-inline centered">
-        <!-- Animated input -->
-        <div class="form-control">
-          <input id="username" type="text" required="" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="none" />
-          <label aria-hidden="true">
-            <span style="transition-delay:0ms">U</span><span style="transition-delay:50ms">s</span><span style="transition-delay:100ms">e</span><span style="transition-delay:150ms">r</span><span style="transition-delay:200ms">n</span><span style="transition-delay:250ms">a</span><span style="transition-delay:300ms">m</span><span style="transition-delay:350ms">e</span>
-          </label>
-        </div>
-
-        <!-- Platform select (chess.com / lichess) -->
-        <div style="display:flex;align-items:center;gap:6px;">
-          <select id="platform" aria-label="Platform">
-            <option value="chesscom">Chess.com</option>
-            <option value="lichess">Lichess</option>
-          </select>
-          <button id="platformArrow" class="small-arrow" title="Fetch Games from selected platform" aria-label="Fetch for platform">➜</button>
-        </div>
-        
-      </div>
-
-      <!-- Analysis depth slider -->
-      <div class="controls-inline centered" style="margin-top:8px;">
-        <div class="slider-control">
-          <label for="depth">Analysis Depth</label>
-          <span id="depthValue">15</span>
-          <div class="slider-with-value">
-            <input type="range" id="depth" min="5" max="25" value="15" class="styled-slider" />
-          </div>
-          <div class="slider-hints">
-            <span>Faster</span>
-            <span>Deeper</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Fetch controls: small arrow triggers fetching for selected platform -->
-      <div class="fetch-wrap">
-        <div class="button-row">
-          
-          <!-- Fetch triggered by the arrow next to the platform select -->
-        </div>
-      </div>
+    
+    <!-- Keep these elements but hide them, they're needed for functionality -->
+    <div style="display: none;">
+      <input id="username" type="text" />
+      <select id="platform">
+        <option value="chesscom">Chess.com</option>
+        <option value="lichess">Lichess</option>
+      </select>
     </div>
 
     <ul id="gamesList"></ul>
 
-    <!-- Analyze button shown when a game is selected -->
-    <div id="analyzeAction" class="hidden">
-      <button id="analyzeSelected" class="cssbuttons-io-button">Analyze Selected Game</button>
+    <!-- Game info section -->
+    <div id="gameInfoWrapper" class="hidden analysis-element">
+      <div class="game-info">
+        <button id="backToGames" class="back-button">←</button>
+        <div class="game-players">
+          <span id="whitePlayerInfo">White: </span>
+          <span id="blackPlayerInfo">Black: </span>
+        </div>
+      </div>
     </div>
-    <div id="results" class="hidden"></div>
-    <!-- Horizontal summary table (3 rows x 10 columns) placed before the chessboard -->
-    <div id="summaryWrapper" class="hidden" style="width:100%; margin-top:12px;">
+    
+    <!-- Keep summary table -->
+    <div id="summaryWrapper" class="hidden analysis-element" style="width:100%; margin-top:12px;">
       <table id="summaryTable" class="summary-table" aria-label="Game summary">
         <colgroup>
           <col style="width:12%" />
@@ -148,26 +116,27 @@
       </table>
     </div>
 
-    <!-- Chessboard preview that appears after analysis completes (before stats) -->
-    <div id="boardContainer" class="hidden">
-      <div id="boardHeader" class="board-player-labels" style="text-align:center;margin-bottom:6px;">
-        <div id="boardBlackPlayer" class="player-top" style="font-weight:700;font-size:13px;color:#222;">&nbsp;</div>
+    <!-- Analysis results section -->
+    <div id="results" class="hidden">
+      <div class="results-header">
+        <h3>Analysis Results</h3>
       </div>
-      <div id="chessboard" aria-hidden="false">
-        <!-- SVG overlay for arrows (drawn dynamically) -->
-        <svg id="boardOverlay" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" preserveAspectRatio="none" aria-hidden="true"></svg>
-      </div>
-      <div id="boardFooter" class="board-player-labels" style="text-align:center;margin-top:8px;">
-        <div id="boardWhitePlayer" class="player-bottom" style="font-weight:700;font-size:13px;color:#222;margin-bottom:6px;">&nbsp;</div>
-      </div>
-      <div id="boardControls">
-        <button id="prevMove" title="Previous move" disabled class="board-nav">◀</button>
-        <button id="nextMove" title="Next move" disabled class="board-nav">▶</button>
-      </div>
-      <div id="boardGameType" style="text-align:center;font-size:12px;color:#666;margin-top:6px;">&nbsp;</div>
-      <div id="moveInfo">
-        <div id="moveType" class="move-type">&nbsp;</div>
-        <!-- moveReason removed per request (fluff text) -->
+    </div>
+    <div id="moveInfo">
+      <div id="moveType" class="move-type"></div>
+    </div>
+    <div id="boardContainer" class="hidden analysis-element">
+        <div id="chessboard">
+            <div id="arrowContainer" class="arrow-container"></div>
+        </div>
+        <div id="boardControls">
+          <div class="button-container">
+            <button id="prevMove" title="Previous move" disabled>←</button>
+            <button id="nextMove" title="Next move" disabled>→</button>
+          </div>
+          <div class="keyboard-hint">Arrow keys are allowed too</div>
+        </div>
+        
       </div>
     </div>
 
