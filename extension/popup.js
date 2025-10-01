@@ -1,66 +1,183 @@
 async function fetchAndRenderGames() {
+  const inputBox = document.querySelector(".inputBox");
   const username = document.getElementById("username").value.trim();
   const platformEl = document.getElementById("platform");
   const platform = (platformEl && platformEl.value) ? platformEl.value : 'chesscom';
+  
   if (!username) return;
   if (window._analysisBusy) return; // prevent multiple fetches
+  
+  // Remove any existing error state
+  const existingError = inputBox.querySelector(".error-message");
+  if (existingError) existingError.remove();
+  inputBox.classList.remove("error");
 
   let games = [];
-  if (platform === "chesscom") {
-    games = await fetchChesscomGames(username);
-  } else {
-    games = await fetchLichessGames(username);
+  try {
+    if (platform === "chesscom") {
+      games = await fetchChesscomGames(username);
+    } else {
+      games = await fetchLichessGames(username);
+    }
+  } catch (error) {
+    // Show error state
+    const inputBox = document.querySelector(".inputBox");
+    inputBox.classList.add("error");
+    
+    // Add error message if it doesn't exist
+    if (!inputBox.querySelector(".error-message")) {
+      const errorMessage = document.createElement("div");
+      errorMessage.className = "error-message";
+      errorMessage.textContent = "Invalid username";
+      inputBox.appendChild(errorMessage);
+    }
+    return;
   }
 
+  // Limit to last 15 games
+  games = games.slice(0, 15);
+
   const list = document.getElementById("gamesList");
-  list.innerHTML = "";
+  // Clear and initialize list with headers
+  list.innerHTML = '';
+  
+  // Create container and headers
+  const container = document.createElement('div');
+  container.className = 'list-container';
+  
+  const headers = document.createElement('div');
+  headers.className = 'list-headers';
+  headers.innerHTML = `
+    <div>Date</div>
+    <div>Players</div>
+    <div>Time</div>
+    <div>Result</div>
+  `;
+  
+  container.appendChild(headers);
+  list.appendChild(container);
 
   games.forEach(g => {
-    // Extract result from PGN
-    let winnerText = "";
+    // Extract result and determine if user won
+    let resultText = "";
+    let resultClass = "";
     const resultMatch = g.pgn.match(/\[Result\s+"([^"]+)"\]/);
     if (resultMatch) {
       const result = resultMatch[1];
+      const isUserWhite = g.white.toLowerCase() === username.toLowerCase();
+      
       if (result === "1-0") {
-        winnerText = `Winner: ${g.white}`;
+        resultClass = isUserWhite ? "win" : "loss";
       } else if (result === "0-1") {
-        winnerText = `Winner: ${g.black}`;
+        resultClass = isUserWhite ? "loss" : "win";
       } else {
-        winnerText = "Draw";
+        resultClass = "draw";
       }
     }
 
-    const li = document.createElement("li");
-    li.className = 'game-item';
-    li.innerHTML = `
+      const li = document.createElement("li");
+      li.className = 'game-item';
+      li.id = `game-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create wrapper div
+      const wrapper = document.createElement("div");
+      wrapper.className = 'game-wrapper';
+      
+      // Format date nicely
+      const date = new Date(g.time);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });    const gameContent = `
       <div class="game-row">
-        <div class="players"><strong>${escapeHtml(g.white)}</strong> <span class="vs">vs</span> <strong>${escapeHtml(g.black)}</strong></div>
-        <div class="meta">${escapeHtml(g.type)} • ${g.time.toLocaleString()}</div>
-        <div class="winner">${escapeHtml(winnerText)}</div>
+        <div class="game-header">
+          <span class="date">${dateStr}</span>
+          <div class="players">
+            <span class="player">
+              <span class="name">${escapeHtml(g.white)}</span>
+              <span class="rating">(${g.white_rating})</span>
+            </span>
+            <span class="player">
+              <span class="name">${escapeHtml(g.black)}</span>
+              <span class="rating">(${g.black_rating})</span>
+            </span>
+          </div>
+          <span class="time-control">${formatTimeControl(g.type)}</span>
+          <span class="result ${resultClass}"></span>
+        </div>
       </div>
     `;
+
+    wrapper.innerHTML = gameContent;
+
+    // Create analysis controls div
+    const analysisControls = document.createElement('div');
+    analysisControls.className = 'analysis-controls hidden';
+    analysisControls.innerHTML = `
+      <div class="depth-control">
+        <div class="slider-control">
+          <div class="slider-with-value">
+            <input type="range" class="styled-slider" min="5" max="25" value="15">
+          </div>
+          <div class="slider-hints">
+            <span>7s</span>
+            <span>7 min</span>
+          </div>
+        </div>
+      </div>
+      <button class="analyze-arrow">Analyze</button>
+    `;
+
+    // Add both to li
+    li.appendChild(wrapper);
+    li.appendChild(analysisControls);
     li.addEventListener("click", () => {
-      // Select this game (highlight) and show the Analyze button
+      // Select this game (highlight) and show analysis controls
       const prev = document.querySelector('#gamesList li.selected');
-      if (prev) prev.classList.remove('selected');
-      li.classList.add('selected');
-      const analyzeAction = document.getElementById('analyzeAction');
-      if (analyzeAction) { analyzeAction.classList.remove('hidden'); }
-      // store selected PGN on analyze button
-      const btn = document.getElementById('analyzeSelected');
-      if (btn) {
-        btn.dataset.pgn = g.pgn || '';
-        btn.dataset.url = g.url || '';
-        btn.dataset.white = g.white || '';
-        btn.dataset.black = g.black || '';
-        btn.dataset.white_rating = g.white_rating || '';
-        btn.dataset.black_rating = g.black_rating || '';
-        // enable button now that a selection exists
-        btn.disabled = false;
+      const prevControls = document.querySelector('#gamesList .analysis-controls:not(.hidden)');
+      
+      // Hide previous controls
+      if (prevControls) {
+        prevControls.classList.add('hidden');
       }
+      
+      if (prev) {
+        prev.classList.remove('selected');
+      }
+      
+      li.classList.add('selected');
+      
+      // Show this game's analysis controls
+      const controls = li.querySelector('.analysis-controls');
+      controls.classList.remove('hidden');
+      
+      // Store PGN on li element
       li.dataset.pgn = g.pgn || '';
+      li.dataset.url = g.url || '';
+      li.dataset.white = g.white || '';
+      li.dataset.black = g.black || '';
+      li.dataset.white_rating = g.white_rating || '';
+      li.dataset.black_rating = g.black_rating || '';
     });
-    list.appendChild(li);
+    // Add click handler for analyze button
+    const analyzeButton = analysisControls.querySelector('.analyze-arrow');
+    const depthSlider = analysisControls.querySelector('input[type="range"]');
+    const depthValue = analysisControls.querySelector('.depth-value');
+
+    // Update depth value display when slider changes
+    depthSlider.addEventListener('input', () => {
+      depthValue.textContent = depthSlider.value;
+    });
+
+    analyzeButton.addEventListener('click', async (e) => {
+      e.stopPropagation(); // Prevent triggering li click event
+      const depth = parseInt(depthSlider.value, 10);
+      await startAnalysis(li.dataset.pgn, li.dataset.url, {
+        white_name: li.dataset.white,
+        black_name: li.dataset.black,
+        white_rating: li.dataset.white_rating,
+        black_rating: li.dataset.black_rating
+      }, depth);
+    });
+
+    container.appendChild(li);
   });
 }
 
@@ -70,23 +187,12 @@ if (platformArrow) {
   platformArrow.addEventListener('click', fetchAndRenderGames);
 }
 
-// Note: the clear button is created dynamically inside the results header.
-// If an existing static clear button is present (old layout), wire it up.
-const clearBtnStatic = document.getElementById('clearAnalysis');
-if (clearBtnStatic) {
-  clearBtnStatic.addEventListener('click', async () => {
-    await clearAnalysis();
-  });
-}
+// Clear button and Analyse Current Game features removed per request.
 
-// Analyse Current Game feature removed per request.
-
-async function startAnalysis(pgn, gameUrl = '', meta = {}) {
+async function startAnalysis(pgn, gameUrl = '', meta = {}, depth = 15) {
   // No progress bar; overlay loader will be shown
   const results = document.getElementById("results");
   const platformEl = document.getElementById('platform');
-  const depthEl = document.getElementById('depth');
-  const depth = depthEl ? parseInt(depthEl.value, 10) : 15;
 
   // mark as busy and disable controls
   window._analysisBusy = true;
@@ -137,9 +243,21 @@ async function startAnalysis(pgn, gameUrl = '', meta = {}) {
       data.black_rating = data.black_rating || meta.black_rating || (data.black && data.black.rating) || null;
     }
 
-    // Hide the list and analyze action now that analysis is done
-    const gl = document.getElementById('gamesList'); if (gl) gl.innerHTML = '';
-    const aa = document.getElementById('analyzeAction'); if (aa) aa.classList.add('hidden');
+    // Hide the games list and show analysis screen
+    const gl = document.getElementById('gamesList');
+    if (gl) gl.style.display = 'none';
+
+    // Show analysis screen elements
+    const analysisScreen = document.querySelectorAll('.analysis-element');
+    analysisScreen.forEach(el => el.classList.remove('hidden'));
+
+    // Show and update results section
+    results.classList.remove('hidden');
+    renderResults(data);
+
+    // Show board container
+    const boardContainer = document.getElementById('boardContainer');
+    if (boardContainer) boardContainer.classList.remove('hidden');
 
     // Initialize board preview from returned fen history and moves meta
     try {
@@ -187,6 +305,7 @@ function attachMoveListeners() {
 }
 
 // Persist last analysis so popup can restore state when reopened
+/*
 function saveAnalysis(data) {
   return new Promise((resolve, reject) => {
     try {
@@ -210,41 +329,11 @@ function saveAnalysis(data) {
   });
 }
 
-// Remove saved analysis and clear UI
-function clearAnalysis() {
-  return new Promise((resolve) => {
-    try {
-      chrome.storage.local.remove(['lastAnalysis'], () => {
-        // clear UI
-        const results = document.getElementById('results');
-        if (results) results.innerHTML = '';
-        const gamesList = document.getElementById('gamesList');
-        if (gamesList) gamesList.innerHTML = '';
-    // progress UI removed
-    // hide overlay as well
-    const overlay = document.getElementById('analysisOverlay');
-    if (overlay) { overlay.classList.add('hidden'); overlay.style.display = 'none'; }
-        // disable clear button
-        const cb = document.getElementById('clearAnalysis');
-        if (cb) cb.disabled = true;
-        try { document.body.classList.remove('has-analysis'); document.body.classList.add('no-analysis'); } catch (e) {}
-        resolve();
-      });
-    } catch (e) {
-      try { document.body.classList.remove('has-analysis'); document.body.classList.add('no-analysis'); } catch (err) {}
-      resolve();
-    }
-  });
-}
-
 function loadSavedAnalysis() {
   return new Promise((resolve) => {
     try {
       chrome.storage.local.get(['lastAnalysis'], result => {
         const found = result.lastAnalysis || null;
-        // enable clear button if analysis exists
-        const cb = document.getElementById('clearAnalysis');
-        if (cb) cb.disabled = !found;
         resolve(found);
       });
     } catch (e) {
@@ -252,13 +341,77 @@ function loadSavedAnalysis() {
     }
   });
 }
+*/
+
+// Placeholder functions until we re-enable state saving
+function saveAnalysis() {
+  return Promise.resolve();
+}
+
+function loadSavedAnalysis() {
+  return Promise.resolve(null);
+}
 
 function renderResults(data) {
   const results = document.getElementById('results');
   if (!results) return;
-  // Populate the small summary table and show results header
-  // Clear previous results content but keep the results header area for the clear button
-  results.innerHTML = `<div class="results-header"><h3>Results</h3><button id="clearAnalysis" class="clear-dustbin" title="Clear analysis" aria-label="Clear analysis"></button></div>`;
+
+  // Setup back button functionality
+  const backButton = document.getElementById('backToGames');
+  if (backButton) {
+    backButton.onclick = () => {
+      // Hide analysis sections
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('gameInfoWrapper').classList.add('hidden');
+      document.getElementById('boardContainer').classList.add('hidden');
+      document.getElementById('summaryWrapper').classList.add('hidden');
+      document.getElementById('moveInfo').classList.add('hidden');
+      
+      // Clear move type text
+      const moveType = document.getElementById('moveType');
+      if (moveType) {
+        moveType.textContent = '';
+        moveType.className = 'move-type';
+      }
+      
+      // Show games list
+      const gamesList = document.getElementById('gamesList');
+      if (gamesList) {
+        gamesList.style.display = 'block';
+        // Re-fetch games to ensure list is populated
+        fetchAndRenderGames();
+      }
+      
+      // Remove any existing arrows
+      const existingArrows = document.querySelectorAll('.move-arrow');
+      existingArrows.forEach(arrow => arrow.remove());
+    };
+  }
+
+  // Show and populate game info
+  const gameInfoWrapper = document.getElementById('gameInfoWrapper');
+  if (gameInfoWrapper) {
+    gameInfoWrapper.classList.remove('hidden');
+
+    // Update player information
+    const whitePlayerInfo = document.getElementById('whitePlayerInfo');
+    const blackPlayerInfo = document.getElementById('blackPlayerInfo');
+    const gameTimeInfo = document.getElementById('gameTimeInfo');
+
+    if (whitePlayerInfo) {
+      whitePlayerInfo.textContent = `White: ${data.white_name || data.white || 'Unknown'} (${data.white_rating || '?'})`;
+    }
+    if (blackPlayerInfo) {
+      blackPlayerInfo.textContent = `Black: ${data.black_name || data.black || 'Unknown'} (${data.black_rating || '?'})`;
+    }
+  }
+
+  // Show the summary table wrapper
+  const summaryWrapper = document.getElementById('summaryWrapper');
+  if (summaryWrapper) {
+    summaryWrapper.classList.remove('hidden');
+    summaryWrapper.style.display = 'block';
+  }
   // Fill the summary table with counts
   const cats = ['brilliant','great','best','excellent','good','inaccuracy','mistake','blunder'];
   const whiteCounts = (data.white && data.white.counts) || {};
@@ -279,13 +432,7 @@ function renderResults(data) {
   if (wTotEl) wTotEl.textContent = String(whiteTotal);
   if (bTotEl) bTotEl.textContent = String(blackTotal);
 
-  // enable clear button
-  const cb = document.getElementById('clearAnalysis');
-  if (cb) {
-    cb.disabled = false;
-    cb.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M6 7h12v13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7z" opacity="0.9"></path><path d="M9 4h6v2H9z" opacity="0.9"></path></svg>`;
-    cb.onclick = async () => { await clearAnalysis(); };
-  }
+  // Clear button removed
 
   // Show the summary area and results
   const summaryWrap = document.getElementById('summaryWrapper');
@@ -353,29 +500,23 @@ async function runSplashSequence() {
   const tagline = document.getElementById('splashTagline');
   const btn = document.getElementById('splashNext');
 
-  // 1) fade-in logo slowly
+  // 1) move logo up (fade handled by keyframes)
   splash.classList.remove('logo-faded-in','logo-moved','title-typing','title-typed','welcome-visible','tagline-visible','continue-visible');
   await delay(80);
-  logo.style.transition = 'opacity 900ms ease, transform 900ms ease';
-  logo.style.opacity = '1';
-  splash.classList.add('logo-faded-in');
+  splash.classList.add('logo-moved');
   // wait for logo to settle
-  await delay(1100);
+  await delay(900);
 
   // 2) shrink and glide upward (move to top center)
   // Force reflow so the animation will trigger reliably, then add the move class
-  // (reading offsetHeight forces layout)
   void logo.offsetHeight;
   splash.classList.add('logo-moved');
-  // fallback: set inline transform so even if CSS keyframes don't run the logo will animate
   try {
-    // set a transition if not present
-    if (!logo.style.transition) logo.style.transition = 'transform 900ms ease, opacity 900ms ease';
-    // target transform matches the keyframe end-state (translate up and shrink)
+    if (!logo.style.transition) logo.style.transition = 'transform 900ms ease';
     logo.style.transform = 'translateY(-140px) scale(0.7)';
   } catch (e) {}
-  // wait for the logo animation to complete
-  await delay(950);
+  // shorter wait for logo movement
+  await delay(600);
 
   // compute stacked offsets so the typed title + welcome + tagline will sit with 40px gaps beneath the logo
   try {
@@ -415,27 +556,104 @@ async function runSplashSequence() {
     titleText.textContent += name[i];
     // progressively increase width to reveal letters (helps with caret feel)
     titleText.style.width = `${i + 1}ch`;
-    await delay(120 + (i * 6));
+    await delay(40 + (i * 4));
   }
   // finish typing
   splash.classList.add('title-typed');
-  await delay(350);
+  await delay(0);
+
+  // Show tagline after typing
+  await delay(300);
+  splash.classList.add('tagline-visible');
+  await delay(600);
 
   // 4) move title upward to sit neatly under the logo: we'll add a helper class that the CSS respects
   // The logo has moved upward already, so this simply fades and repositions the title
-  titleText.parentElement.style.transition = 'transform 450ms ease, opacity 350ms ease';
+  titleText.parentElement.style.transition = 'transform 250ms ease, opacity 250ms ease';
   titleText.parentElement.style.opacity = '1';
-  // now reveal Welcome word in center with same style
-  welcome.textContent = '';
-  welcome.textContent = 'Welcome';
-  splash.classList.add('welcome-visible');
-  await delay(650);
-
-  // 5) show tagline with punch
-  splash.classList.add('tagline-visible');
-  await delay(420);
-
-  // 6) reveal NEXT button with animated visuals
+  // Short delay after typing finishes
+  await delay(200);
+  
+  // Show platform circles
+  splash.classList.add('platforms-visible');
+  
+  // Set up platform selection behavior
+  const platformCircles = document.querySelectorAll('.platform-circle');
+  const inputBox = document.querySelector('.inputBox');
+  
+  platformCircles.forEach(circle => {
+    circle.addEventListener('click', () => {
+      // Remove selected class from all circles
+      platformCircles.forEach(c => c.classList.remove('selected'));
+      // Add selected class to clicked circle
+      circle.classList.add('selected');
+      // Show input box
+      inputBox.classList.remove('hidden');
+      inputBox.classList.add('visible');
+      
+      // Add input event listener for changing text and handle enter key
+      const input = inputBox.querySelector('input');
+      const label = inputBox.querySelector('span');
+      if (input && label) {
+        input.addEventListener('input', () => {
+          label.textContent = input.value.trim() ? 'Press Enter' : 'Username';
+        });
+        
+        // Handle enter key
+        input.addEventListener('keypress', async (e) => {
+          if (e.key === 'Enter' && input.value.trim()) {
+            const username = input.value.trim();
+            const platform = circle.dataset.platform;
+            
+            try {
+              // Try fetching games first to validate username
+              let validUsername = false;
+              try {
+                if (platform === "chesscom") {
+                  await fetchChesscomGames(username);
+                  validUsername = true;
+                } else {
+                  await fetchLichessGames(username);
+                  validUsername = true;
+                }
+              } catch (error) {
+                // Username is invalid
+                inputBox.classList.add("error");
+                
+                // Add error message if it doesn't exist
+                if (!inputBox.querySelector(".error-message")) {
+                  const errorMessage = document.createElement("div");
+                  errorMessage.className = "error-message";
+                  errorMessage.textContent = "Invalid username";
+                  inputBox.appendChild(errorMessage);
+                }
+                return;
+              }
+              
+              if (validUsername) {
+                // Clear any error states
+                inputBox.classList.remove("error");
+                const errorMessage = inputBox.querySelector(".error-message");
+                if (errorMessage) {
+                  errorMessage.remove();
+                }
+                
+                // Set the values in the main UI before transitioning
+                document.getElementById('username').value = username;
+                document.getElementById('platform').value = platform;
+                // Transition to main UI
+                await revealMainUIFromSplash();
+                // Fetch games automatically
+                await fetchAndRenderGames();
+              }
+            } catch (error) {
+              console.error("Error:", error);
+            }
+          }
+        });
+      }
+    });
+  });
   if (btn) {
     btn.style.opacity = '0';
     splash.classList.add('continue-visible');
@@ -513,8 +731,86 @@ function setupDepthSlider() {
   updateValue();
 }
 
+async function startBackend() {
+  const overlay = document.getElementById('backendOverlay');
+  const progressFill = document.getElementById('backendProgressFill');
+  const progressLabel = document.getElementById('backendProgressLabel');
+  
+  // Show overlay
+  if (overlay) { 
+    overlay.classList.remove('hidden'); 
+    overlay.style.display = 'flex';
+  }
+  
+  try {
+    document.body.classList.add('overlay-active');
+  } catch (e) {}
+
+  // Start progress simulation
+  let progress = 5;
+  if (progressFill) progressFill.style.width = progress + '%';
+  const progressInterval = setInterval(() => {
+    if (progress < 85) {
+      progress += Math.random() * 3;
+      if (progress > 85) progress = 85;
+      if (progressFill) progressFill.style.width = Math.round(progress) + '%';
+      if (progressLabel) progressLabel.textContent = 'Starting backend...';
+    }
+  }, 350);
+
+  try {
+    // Try to connect to backend every second until successful
+    let connected = false;
+    while (!connected) {
+      try {
+        const response = await fetch('http://localhost:8000');
+        if (response.ok) {
+          connected = true;
+          clearInterval(progressInterval);
+          if (progressFill) progressFill.style.width = '100%';
+          if (progressLabel) progressLabel.textContent = 'Backend started!';
+          
+          // Wait a moment to show the success message
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Hide overlay
+          if (overlay) {
+            overlay.classList.add('hidden');
+            overlay.style.display = 'none';
+          }
+          document.body.classList.remove('overlay-active');
+          return;
+        }
+      } catch (e) {
+        // Not connected yet, try again in a second
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  } catch (err) {
+    alert("Failed to start backend: " + err.message);
+  } finally {
+    clearInterval(progressInterval);
+    if (overlay) {
+      overlay.classList.add('hidden');
+      overlay.style.display = 'none';
+    }
+    document.body.classList.remove('overlay-active');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   setupDepthSlider();
+  
+  // Add start backend button handler
+  const startBackendBtn = document.getElementById('startBackendButton');
+  if (startBackendBtn) {
+    startBackendBtn.addEventListener('click', () => {
+      // Use chrome.runtime.sendMessage to send a message to the background script
+      chrome.runtime.sendMessage({ action: "startBackend" });
+      // Start showing the loading UI
+      startBackend();
+    });
+  }
   
   document.addEventListener('dragstart', e => {
     if (e.target && e.target.tagName === 'IMG') e.preventDefault();
@@ -522,21 +818,55 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('contextmenu', e => {
     if (e.target && e.target.tagName === 'IMG') e.preventDefault();
   });
-  // Input filled state: keep label up when input has text
+  // Input filled state: keep label up when input has text and change label text
   const username = document.getElementById('username');
   const formControl = username && username.closest('.form-control');
   function updateFilled() {
     if (!formControl || !username) return;
-    if (username.value && username.value.trim().length > 0) formControl.classList.add('filled');
-    else formControl.classList.remove('filled');
+    const label = formControl.querySelector('label span');
+    const spanText = formControl.querySelector('label');
+    if (username.value && username.value.trim().length > 0) {
+      formControl.classList.add('filled');
+      if (spanText) spanText.innerHTML = '<span style="transition-delay:0ms">P</span><span style="transition-delay:50ms">r</span><span style="transition-delay:100ms">e</span><span style="transition-delay:150ms">s</span><span style="transition-delay:200ms">s</span><span style="transition-delay:250ms"> </span><span style="transition-delay:300ms">E</span><span style="transition-delay:350ms">n</span><span style="transition-delay:400ms">t</span><span style="transition-delay:450ms">e</span><span style="transition-delay:500ms">r</span>';
+    } else {
+      formControl.classList.remove('filled');
+      if (spanText) spanText.innerHTML = '<span style="transition-delay:0ms">U</span><span style="transition-delay:50ms">s</span><span style="transition-delay:100ms">e</span><span style="transition-delay:150ms">r</span><span style="transition-delay:200ms">n</span><span style="transition-delay:250ms">a</span><span style="transition-delay:300ms">m</span><span style="transition-delay:350ms">e</span>';
+    }
   }
   if (username) {
     username.addEventListener('input', updateFilled);
     username.addEventListener('blur', updateFilled);
+    // Add enter key handler
+    username.addEventListener('keypress', async (e) => {
+      if (e.key === 'Enter' && username.value.trim()) {
+        await fetchAndRenderGames();
+      }
+    });
     // initial state
     setTimeout(updateFilled, 10);
   }
 });
+
+function formatTimeControl(type) {
+  if (!type) return '5 min';
+  type = type.toLowerCase();
+  
+  // Convert game types to timing format
+  const timeMap = {
+    'bullet': '1 min',
+    'blitz': '3+2',
+    'rapid': '10 min',
+    'classical': '30 min'
+  };
+
+  // Check if it's already in time format (e.g. "10+0")
+  if (/^\d+\+\d+$/.test(type)) {
+    return type + ' min';
+  }
+
+  // Return mapped time or original if not found
+  return timeMap[type] || type;
+}
 
 function escapeHtml(s) {
   if (!s) return '';
@@ -621,6 +951,39 @@ if (analyzeSelectedBtn) {
 }
 
 // Minimal board renderer (no external libs) - uses FEN to draw pieces in a simple grid
+function getGameEndText(pgn) {
+  // Extract result and termination from PGN
+  const resultMatch = pgn.match(/\[Result "(.+?)"\]/i);
+  const terminationMatch = pgn.match(/\[Termination "(.+?)"\]/i);
+  
+  if (!resultMatch) return '';
+  
+  const result = resultMatch[1];
+  const termination = terminationMatch ? terminationMatch[1] : '';
+  
+  if (result === '1-0') {
+    if (termination.toLowerCase().includes('checkmate')) return 'White won by Checkmate';
+    if (termination.toLowerCase().includes('resignation')) return 'White won by Resignation';
+    if (termination.toLowerCase().includes('time')) return 'White won on Time';
+    if (termination.toLowerCase().includes('abandon')) return 'White won by Abandonment';
+    return 'White won';
+  } else if (result === '0-1') {
+    if (termination.toLowerCase().includes('checkmate')) return 'Black won by Checkmate';
+    if (termination.toLowerCase().includes('resignation')) return 'Black won by Resignation';
+    if (termination.toLowerCase().includes('time')) return 'Black won on Time';
+    if (termination.toLowerCase().includes('abandon')) return 'Black won by Abandonment';
+    return 'Black won';
+  } else if (result === '1/2-1/2') {
+    if (termination.toLowerCase().includes('stalemate')) return 'Game drawn by Stalemate';
+    if (termination.toLowerCase().includes('repetition')) return 'Game drawn by Repetition';
+    if (termination.toLowerCase().includes('insufficient')) return 'Game drawn by Insufficient Material';
+    if (termination.toLowerCase().includes('agreement')) return 'Game drawn by Agreement';
+    if (termination.toLowerCase().includes('time')) return 'Game drawn by Time vs Insufficient Material';
+    return 'Game drawn';
+  }
+  return '';
+}
+
 function renderBoardFromFEN(fen) {
   const container = document.getElementById('chessboard');
   if (!container) return;
@@ -700,20 +1063,52 @@ function setupBoardControls() {
   const next = document.getElementById('nextMove');
   const moveType = document.getElementById('moveType');
 
-  function updateUI() {
+    function updateUI() {
     const idx = window._fenIndex;
     const fen = window._fenHistory[idx];
     renderBoardFromFEN(fen);
     const meta = window._movesMeta.find(m => m.ply_index === idx) || null;
-    if (meta) {
-      if (moveType) moveType.innerHTML = `${moveTypeSvg(meta.category)} <span style="margin-left:8px; vertical-align:middle;">${(meta.category || '').toUpperCase()}</span>`;
-    } else {
-      if (moveType) moveType.textContent = '';
+
+    // Find the previous position's metadata to show what the best move was
+    const prevMeta = idx > 0 ? window._movesMeta.find(m => m.ply_index === idx - 1) : null;
+    
+    // Clear any existing arrows
+    const existingArrows = document.querySelectorAll('.move-arrow');
+    existingArrows.forEach(arrow => arrow.remove());
+    
+    // Draw arrows based on the previous position's metadata
+    if (prevMeta) {
+      // Always show the played move arrow in orange
+      if (prevMeta.played_uci && prevMeta.played_uci.length >= 4) {
+        const playedFromSquare = prevMeta.played_uci.slice(0, 2);
+        const playedToSquare = prevMeta.played_uci.slice(2, 4);
+        drawMoveArrow(playedFromSquare, playedToSquare, 'actual-move');
+      }
+      
+      // Always show the best move arrow if it exists
+      if (prevMeta.best_uci && prevMeta.best_uci.length >= 4) {
+        const bestFromSquare = prevMeta.best_uci.slice(0, 2);
+        const bestToSquare = prevMeta.best_uci.slice(2, 4);
+        drawMoveArrow(bestFromSquare, bestToSquare, 'best-move');
+      }
+    }    // Handle move type display
+    if (moveType) {
+      if (idx === window._fenHistory.length - 1) {
+        // Last position - show game result
+        const resultText = getGameEndText(window._currentPGN || '');
+        moveType.textContent = resultText;
+        moveType.classList.add('result');
+      } else if (meta) {
+        // Regular move - show category with icon
+        moveType.classList.remove('result');
+        moveType.innerHTML = `${moveTypeSvg(meta.category)} <span style="margin-left:8px; vertical-align:middle;">${(meta.category || '').toUpperCase()}</span>`;
+      } else {
+        moveType.textContent = '';
+        moveType.classList.remove('result');
+      }
     }
     if (prev) prev.disabled = idx <= 0;
     if (next) next.disabled = idx >= (window._fenHistory.length - 1);
-    // draw best-move arrow for this ply (if available)
-    try { drawBestMoveArrowForIndex(idx); } catch (e) { /* non-fatal */ }
     // Clear previous highlights and apply new highlights for the last-played move (the move that led to the displayed FEN)
     try {
       // Remove any existing highlight classes
@@ -781,100 +1176,81 @@ function setupBoardControls() {
 // expose update function so init can call it and tests can trigger UI refresh
 window._updateBoardUI = null;
 
-// ---------------- Arrow rendering utilities ----------------
-function ensureOverlayDefs() {
-  const svg = document.getElementById('boardOverlay');
-  if (!svg) return null;
-  if (!svg.querySelector('defs')) {
-    const svgns = 'http://www.w3.org/2000/svg';
-    const defs = document.createElementNS(svgns, 'defs');
-    const marker = document.createElementNS(svgns, 'marker');
-    marker.setAttribute('id', 'arrowhead');
-    // use userSpaceOnUse so marker coordinates are in SVG user units (same as line coords)
-    marker.setAttribute('markerUnits', 'userSpaceOnUse');
-  // marker viewBox dimensions; make the marker wider/taller for a bigger arrow head
-  // we'll use a wider triangle (width=18, height=10) and place refX at the tip
-  marker.setAttribute('viewBox', '0 0 18 10');
-  marker.setAttribute('markerWidth', '18');
-  marker.setAttribute('markerHeight', '10');
-  // place the reference at the tip of the arrow path (x=18, y=5)
-  marker.setAttribute('refX', '18');
-  marker.setAttribute('refY', '5');
-    marker.setAttribute('orient', 'auto');
-    const path = document.createElementNS(svgns, 'path');
-  // Wider triangular arrow head
-  path.setAttribute('d', 'M0,0 L0,10 L18,5 z');
-    path.setAttribute('class', 'arrow-head');
-    marker.appendChild(path);
-    defs.appendChild(marker);
-    svg.appendChild(defs);
-  }
+// Arrow rendering utilities
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function createArrowElement(from, to, className = '') {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.classList.add('move-arrow');
+  if (className) svg.classList.add(className);
+  
+  // Set viewBox and size
+  svg.setAttribute('viewBox', '0 0 420 420');
+  svg.style.width = '100%';
+  svg.style.height = '100%';
+  svg.style.position = 'absolute';
+  svg.style.top = '0';
+  svg.style.left = '0';
+  svg.style.pointerEvents = 'none';
+  
+  // Create path for arrow shaft and head
+  const path = document.createElementNS(SVG_NS, 'path');
+  
+  // Calculate positions
+  const startX = (from.x + 0.5) * (420/8);
+  const startY = (from.y + 0.5) * (420/8);
+  const endX = (to.x + 0.5) * (420/8);
+  const endY = (to.y + 0.5) * (420/8);
+  
+  // Calculate arrow head points
+  const angle = Math.atan2(endY - startY, endX - startX);
+  const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+  const headLength = 25; // Length of arrow head
+  const headWidth = 15; // Width of arrow head
+  
+  // Adjust end point to accommodate arrow head
+  const adjustedEndX = startX + (length - headLength) * Math.cos(angle);
+  const adjustedEndY = startY + (length - headLength) * Math.sin(angle);
+  
+  // Create path data
+  const pathData = `
+    M ${startX} ${startY}
+    L ${adjustedEndX} ${adjustedEndY}
+    L ${endX} ${endY}
+    l ${-headLength * Math.cos(angle - Math.PI/6)} ${-headLength * Math.sin(angle - Math.PI/6)}
+    M ${endX} ${endY}
+    l ${-headLength * Math.cos(angle + Math.PI/6)} ${-headLength * Math.sin(angle + Math.PI/6)}
+  `;
+  
+  path.setAttribute('d', pathData);
+  svg.appendChild(path);
+  
   return svg;
 }
 
-function clearOverlayArrows() {
-  const svg = document.getElementById('boardOverlay');
-  if (!svg) return;
-  // Remove all overlay children except the <defs> block to ensure no stray dots remain
-  Array.from(svg.children).forEach(child => {
-    if (child.tagName && child.tagName.toLowerCase() === 'defs') return;
-    child.remove();
-  });
-}
-
-function uciSquareToCenter(square) {
-  // Use rendered mini-board dimensions to compute accurate centers
-  if (!square || square.length < 2) return null;
-  const boardEl = document.querySelector('.mini-board');
-  if (!boardEl) return null;
-  const rect = boardEl.getBoundingClientRect();
-  const file = square[0];
-  const rank = parseInt(square[1], 10);
-  const fileIndex = file.charCodeAt(0) - 'a'.charCodeAt(0); // 0..7
-  const rankIndex = 8 - rank; // 0 at top (rank 8) to 7 at bottom (rank 1)
-  const Sx = rect.width / 8;
-  const Sy = rect.height / 8;
-  // compute center in viewport (client) coordinates
-  const clientX = rect.left + (fileIndex * Sx) + (Sx / 2);
-  const clientY = rect.top + (rankIndex * Sy) + (Sy / 2);
-  // convert client coords to SVG user space (handles viewBox / preserveAspectRatio correctly)
-  const svg = document.getElementById('boardOverlay');
-  if (!svg || !svg.createSVGPoint) return { x: clientX, y: clientY };
-  const pt = svg.createSVGPoint();
-  pt.x = clientX; pt.y = clientY;
-  // Inverse of screen CTM maps screen (client) to SVG user coordinates
-  const inverse = svg.getScreenCTM() ? svg.getScreenCTM().inverse() : null;
-  if (!inverse) return { x: clientX, y: clientY };
-  const svgP = pt.matrixTransform(inverse);
-  return { x: svgP.x, y: svgP.y };
-}
-
-function drawBestMoveArrowForIndex(idx) {
-  const svg = ensureOverlayDefs();
-  if (!svg) return;
-  clearOverlayArrows();
-  const meta = (window._movesMeta || []).find(m => m.ply_index === idx) || null;
-  if (!meta) return;
-  const svgns = 'http://www.w3.org/2000/svg';
-  // Use only the single best move (first entry). Prefer explicit best_uci if present.
-  const best = (meta.best_uci) ? meta.best_uci : (Array.isArray(meta.best_uci_list) && meta.best_uci_list.length ? meta.best_uci_list[0] : null);
-  if (!best || best.length < 4) return;
-  const from = best.slice(0,2);
-  const to = best.slice(2,4);
-  const a = uciSquareToCenter(from);
-  const b = uciSquareToCenter(to);
-  if (!a || !b) return;
-  // Draw a straight arrow line from center-to-center
-  const line = document.createElementNS(svgns, 'line');
-  line.setAttribute('x1', String(a.x));
-  line.setAttribute('y1', String(a.y));
-  line.setAttribute('x2', String(b.x));
-  line.setAttribute('y2', String(b.y));
-  line.setAttribute('class', 'arrow-path');
-  line.setAttribute('marker-end', 'url(#arrowhead)');
-  // Ensure line doesn't extend beyond midpoints; the arrowhead marker will be placed at the end
-  svg.appendChild(line);
-  // No destination highlight circle (removing dots per UX request)
+function drawMoveArrow(fromCoord, toCoord, type = 'best-move') {
+  // Convert algebraic coordinates to x,y coordinates (0-7)
+  const fromFile = fromCoord.charCodeAt(0) - 'a'.charCodeAt(0);
+  const fromRank = 8 - parseInt(fromCoord[1]);
+  const toFile = toCoord.charCodeAt(0) - 'a'.charCodeAt(0);
+  const toRank = 8 - parseInt(toCoord[1]);
+  
+  // Create container for arrows if it doesn't exist
+  let arrowContainer = document.querySelector('.arrow-container');
+  if (!arrowContainer) {
+    arrowContainer = document.createElement('div');
+    arrowContainer.className = 'arrow-container';
+    const chessboard = document.getElementById('chessboard');
+    if (chessboard) chessboard.appendChild(arrowContainer);
+  }
+  
+  // Create and append the arrow
+  const arrow = createArrowElement(
+    { x: fromFile, y: fromRank },
+    { x: toFile, y: toRank },
+    type
+  );
+  arrowContainer.appendChild(arrow);
 }
 
 // Call this after analysis completes to initialize board and controls
@@ -889,9 +1265,7 @@ function initBoardFromAnalysis(result) {
     // render initial position
     const firstFen = window._fenHistory[0];
     renderBoardFromFEN(firstFen);
-    // draw arrow for initial index if available
-    try { drawBestMoveArrowForIndex(window._fenIndex); } catch (e) { /* ignore */ }
-  // update move info too
+    // update move info
   const moveType = document.getElementById('moveType');
   if (moveType) moveType.textContent = '';
     // populate player labels if available
