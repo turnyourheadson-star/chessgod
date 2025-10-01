@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, UploadFile, Form, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from analysis.analyzer import analyze_game
@@ -18,7 +18,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-        "chrome-extension://*"  # Allow any Chrome extension
+        "chrome-extension://*",  # Allow any Chrome extension
+        "https://chessgod-backend-wa2i.onrender.com"  # Add your Render.com domain
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],  # Only allow necessary methods
