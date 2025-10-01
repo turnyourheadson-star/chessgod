@@ -1281,4 +1281,3 @@ function initBoardFromAnalysis(result) {
     try { if (window._updateBoardUI) window._updateBoardUI(); } catch (e) {}
   }
 }
-

@@ -53,7 +53,7 @@ async function fetchLichessGames(username) {
 
 // Send PGN to backend
 async function analyzeGame(pgn, url = '', depth = 15) {
-  const BACKEND_URL = 'https://chessgod.onrender.com'; // Update this with your Render URL
+  const BACKEND_URL = 'https://chessgod-backend-wa2i.onrender.com'; // Production Render URL
   
   // Try both endpoints - JSON and form data
   try {
