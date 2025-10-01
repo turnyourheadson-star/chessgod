@@ -1,7 +1,7 @@
 // Chess.com fetch: first get archive list, then fetch the last archive
 async function fetchChesscomGames(username) {
   const archiveRes = await fetch(`https://api.chess.com/pub/player/${username}/games/archives`);
-  if (!archiveRes.ok) throw new Error("Failed to fetch archives");
+  if (!archiveRes.ok) throw new Error("Couldn't fetch games!");
   const archives = await archiveRes.json();
   const lastUrl = (archives.archives && archives.archives.length) ? archives.archives.pop() : null;
   if (!lastUrl) return [];
@@ -10,8 +10,8 @@ async function fetchChesscomGames(username) {
   if (!gamesRes.ok) throw new Error("Failed to fetch games");
   const data = await gamesRes.json();
 
-  // Take last 10 games
-  return data.games.slice(-10).reverse().map(g => ({
+  // Take last 15 games
+  return data.games.slice(-15).reverse().map(g => ({
     white: (g.white && (g.white.username || g.white.username)) || 'White',
     black: (g.black && (g.black.username || g.black.username)) || 'Black',
     white_rating: (g.white && (g.white.rating || g.white.rating)) || null,
@@ -27,7 +27,7 @@ async function fetchChesscomGames(username) {
 // Lichess fetch: uses NDJSON format
 async function fetchLichessGames(username) {
   const res = await fetch(
-    `https://lichess.org/api/games/user/${username}?max=10&clocks=false&evals=false&moves=true&pgnInJson=true`,
+    `https://lichess.org/api/games/user/${username}?max=15&clocks=false&evals=false&moves=true&pgnInJson=true`,
     { headers: { Accept: "application/x-ndjson" } }
   );
   if (!res.ok) throw new Error("Failed to fetch Lichess games");
@@ -53,7 +53,7 @@ async function fetchLichessGames(username) {
 
 // Send PGN to backend
 async function analyzeGame(pgn, url = '', depth = 15) {
-  const BACKEND_URL = 'https://chessgod-backend-wa2i.onrender.com'; // Update this with your Render URL
+  const BACKEND_URL = 'https://chessgod.onrender.com'; // Update this with your Render URL
   
   // Try both endpoints - JSON and form data
   try {
@@ -95,8 +95,4 @@ async function analyzeGame(pgn, url = '', depth = 15) {
     console.error("Analysis failed:", error);
     throw error;
   }
-  if (!res.ok) {
-    throw new Error("Backend error");
-  }
-  return res.json();
 }
