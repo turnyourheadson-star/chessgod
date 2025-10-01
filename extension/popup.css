@@ -1,8 +1,41 @@
 body {
-  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
-  min-width: 500px;
-  /* default when no analysis and no loader */
-  min-height: 650px;
+  font-family: 'Poppins', -apple-system, 'Segoe UI', Roboto, Arial;
+  min-width: 450px;
+  max-width: 450px;
+  width: 500px;
+  min-height: 550px;
+  max-height: 550px;
+  height: 550px;
+  /* Auto height for content .platform-circle.right .platform-logo {
+  width: 45%;
+  height: auto;
+}
+
+/* Tooltip styling */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  border-radius: 36px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+}  height: 550px;
   padding: 16px;
   background: #fbfbfd;
   color: #0f1720;
@@ -15,24 +48,271 @@ body {
 #splash { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; background: transparent; z-index: 10000; }
 /* Apply background after loader completes if desired */
 .splash-bg { background: linear-gradient(180deg,#ffffff,#f7fbff); }
-#splashInner { text-align:center; padding: 18px; width:100%; display:flex; flex-direction:column; align-items:center; gap:12px; }
-#splashLogoWrap { display:flex; align-items:center; justify-content:center; height:260px; }
+#splashInner { text-align:center; padding: 18px; width:100%; display:flex; flex-direction:column; align-items:center; gap:6px; }
+#splashLogoWrap { display:flex; align-items:center; justify-content:center; height:200px; padding-top: 24px; }
 /* slightly smaller logo for better composition */
-#splashLogo { width:220px; height:220px; opacity:0; transform: scale(1.05); transition: opacity 900ms ease, transform 900ms ease; }
-#splashTitle { font-family: 'Special Gothic Expanded One', sans-serif; font-size:28px; margin:0; opacity:0; }
-#splashTitleText { display:inline-block; white-space:nowrap; border-right: 2px solid rgba(0,0,0,0.08); padding-right:6px; }
+#splashLogo { width:220px; height:220px; opacity:0; transform: scale(1.05); }
+#splashTitle { font-family: 'Special Gothic Expanded One', sans-serif; font-size:28px; margin:0; opacity:0; color: #000000; }
+#splashTitleText { display:inline-block; white-space:nowrap; border-right: 2px solid rgba(0,0,0,0.08); padding-right:0px; color: #000000; font-weight: 900; }
+
+.splash-tagline {
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  color: #666;
+  margin: -4px 0 0 0;
+  opacity: 0;
+  transform: translateY(8px);
+  font-weight: 400;
+}
+
+@keyframes fadeInUp {
+  from { 
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tagline-visible .splash-tagline {
+  animation: fadeInUp 0.6s ease forwards;
+}
 #splashWelcome { font-family: 'Poppins', sans-serif; font-size:18px; margin:0; opacity:0; }
 #splashTagline { font-family: 'Poppins', sans-serif; font-size:14px; margin:0; opacity:0; transform: translateY(6px); }
 
-/* logo glide up: after initial fade-in, shrink slightly and move to top center */
+/* logo glide up: handles both fade and movement in one animation */
 @keyframes logoEntrance {
   0% { opacity: 0; transform: translateY(0) scale(1.25); }
-  60% { opacity: 1; transform: translateY(-8px) scale(1); }
-  100% { opacity: 1; transform: translateY(-80px) scale(0.74); }
+  30% { opacity: 1; transform: translateY(0) scale(1.05); }
+  100% { opacity: 1; transform: translateY(-40px) scale(0.8); }
 }
 
 /* subtle fade for text */
 @keyframes fadeInUp { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+
+/* Platform circles styling */
+.platform-choices {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 20px;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.platform-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.platform-circle:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+}
+
+.platform-circle.selected {
+  border: 2px solid #000;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+}
+
+/* Shake animation for error */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+/* Input box styling */
+.inputBox {
+  position: relative;
+  margin-top: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.inputBox.visible {
+  opacity: 1;
+  visibility: visible;
+  animation: fadeInInput 0.4s ease-out forwards;
+}
+
+@keyframes fadeInInput {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.inputBox input {
+  padding: 15px 20px;
+  outline: none;
+  background: transparent;
+  border-radius: 36px;
+  color: #000;
+  border: 1px solid #000;
+  font-size: 1em;
+  width: 250px;
+  text-align: center;
+  transition: border-color 0.2s ease;
+}
+
+.inputBox.error input {
+  border-color: #f44336;
+  animation: shake 0.5s ease-in-out;
+}
+
+.error-message {
+  color: #f44336;
+  font-size: 12px;
+  margin-top: 4px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.inputBox.error .error-message {
+  opacity: 1;
+}
+
+.inputBox span {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 15px 0;
+  pointer-events: none;
+  font-size: 1em;
+  transition: 0.4s cubic-bezier(0.05, 0.81, 0, 0.93);
+  color: #000;
+  letter-spacing: 0.1em;
+}
+
+.inputBox input:focus ~ span,
+.inputBox input:valid ~ span {
+  font-size: 0.7em;
+  transform: translate(-50%, -50%);
+  padding: 0 2px;
+  border-radius: 36px;
+  background: #fff;
+  letter-spacing: 0;
+  border: 0.5px solid #000;
+  height: 10px;
+  line-height: 9px;
+  width: 50px;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.inputBox.error input {
+  border-color: #ff3333;
+  animation: shake 0.2s ease-in-out 0s 2;
+}
+
+.inputBox.error span {
+  color: #ff3333;
+  border-color: #ff3333;
+}
+
+.error-message {
+  color: #ff3333;
+  font-size: 12px;
+  position: absolute;
+  bottom: -24px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  animation: fadeIn 0.2s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.platform-circle.left {
+  transform: translate(-100px, -40px);
+}
+
+.platform-circle.right {
+  transform: translate(100px, 40px);
+}
+
+.platform-logo {
+  width: 70%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Specific size for chess.com logo */
+.platform-circle.left .platform-logo {
+  width: 45%;
+  height: auto;
+}
+
+/* Platform circles animations */
+@keyframes slideFromLeft {
+  0% { opacity: 0; transform: translate(-100px), translateY(-40px); visibility: visible; }
+  50% { opacity: 0.5; transform: translate(-100px), translateY(-40px); visibility: visible; }
+  100% { opacity: 1; transform: translateX(0); visibility: visible; }
+}
+
+@keyframes slideFromRight {
+  0% { opacity: 0; transform: translateX(100px), translateY(40px); visibility: visible; }
+  50% { opacity: 0.5; transform: translate(-100px), translateY(-40px); visibility: visible; }
+  100% { opacity: 1; transform: translateX(0); visibility: visible; }
+}
+
+.platforms-visible .platform-choices {
+  opacity: 1;
+  visibility: visible;
+}
+
+.platforms-visible .platform-circle.left {
+  animation: slideFromLeft 0.6s ease forwards;
+}
+
+.platforms-visible .platform-circle.right {
+  animation: slideFromRight 0.6s ease forwards;
+}
 
 /* typewriter effect */
 @keyframes typewriter { from { width: 0; } to { width: 100%; } }
@@ -46,7 +326,7 @@ body {
 }
 
 /* Glowing border animation for Continue (animated stroke around edges) */
-.splash-continue { position: relative; background: linear-gradient(90deg,#fff,#fff); color:#0b1320; padding:10px 18px; border-radius:28px; font-weight:700; border:0; cursor:pointer; min-width:120px; box-shadow: 0 6px 18px rgba(2,6,23,0.06); opacity:0; }
+.splash-continue { position: relative; background: linear-gradient(90deg,#fff,#fff); color:#0b1320; padding:10px 18px; border-radius:28px; font-weight:700; border:0; cursor:pointer; min-width:120px; box-shadow: 0 6px 18px rgba(2,6,23,0.06); opacity:0; visibility: hidden; transform: translateX(-50px); }
 .splash-continue::before { content: ''; position: absolute; inset: -2px; border-radius: 30px; padding:2px; background: conic-gradient(from 0deg, #8bf56f, #4caf50, #66e07a, #8bf56f); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: xor; -webkit-mask-composite: xor; opacity:0.9; animation: glowRotate 3.4s linear infinite; }
 @keyframes glowRotate { to { transform: rotate(360deg); } }
 
@@ -61,73 +341,35 @@ body {
 .title-typed #splashTitleText { border-right: 2px solid transparent; }
 .welcome-visible #splashWelcome { animation: fadeInUp .6s ease forwards; }
 .tagline-visible #splashTagline { animation: taglinePunch .6s cubic-bezier(.2,.9,.2,1) forwards; }
-.continue-visible .splash-continue { animation: fadeInUp .6s ease .12s forwards; }
+.continue-visible .splash-continue { visibility: visible; animation: slideInFromLeft 0.6s ease forwards; }
+
+@keyframes slideInFromLeft {
+  0% { opacity: 0; transform: translateX(-50px); visibility: visible; }
+  100% { opacity: 1; transform: translateX(0); visibility: visible; }
+}
 
 /* Typewriter specific: we will set inline width via JS to trigger the effect */
 .typewriter-anim { display:inline-block; overflow:hidden; vertical-align:bottom; }
 
-/* From Uiverse.io by Li-Deheng - NEXT button */
-.button {
-  --main-size: 1.15em;
-  --color-text: #ffffff;
-  --color-background: #000000;
-  --color-background-hover: #1a1919;
-  --color-outline: #302f2f40;
-  --color-shadow: #00000040;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-decoration: none;
-  border: none;
-  border-radius: calc(var(--main-size) * 100);
-  padding: 0.33em 0 0.33em 0.66em;
-  font-family: "Poppins", sans-serif;
-  font-weight: 600;
-  font-size: var(--main-size);
-  color: var(--color-text);
-  background: var(--color-background);
-  box-shadow: 0 0 0.2em 0 var(--color-background);
-  transition: 1s;
-}
-
-.button:active { transform: scale(0.95); }
-
-.button:hover {
-  outline: 0.1em solid transparent;
-  outline-offset: 0.2em;
-  box-shadow: 0 0 1em 0 var(--color-background);
-  animation: ripple 1s linear infinite, colorize 1s infinite;
-  transition: 0.5s;
-}
-
-.button span { margin-right: 0.3em; transition: 0.5s; }
-.button:hover span { text-shadow: 5px 5px 5px var(--color-shadow); }
-.button:active span { text-shadow: none; }
-.button svg { height: 0.8em; fill: var(--color-text); margin-right: -0.16em; position: relative; transition: 0.5s; }
-.button:hover svg { margin-right: 0.66em; transition: 0.5s; filter: drop-shadow(5px 5px 2.5px var(--color-shadow)); }
-.button:active svg { filter: none; }
-.button svg polygon:nth-child(1) { transition: 0.4s; transform: translateX(-60%); }
-.button svg polygon:nth-child(2) { transition: 0.5s; transform: translateX(-30%); }
-.button:hover svg polygon:nth-child(1) { transform: translateX(0%); animation: opacity 1s infinite 0.6s; }
-.button:hover svg polygon:nth-child(2) { transform: translateX(0%); animation: opacity 1s infinite 0.4s; }
-.button:hover svg polygon:nth-child(3) { animation: opacity 1s infinite 0.2s; }
-
-@keyframes opacity { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-@keyframes colorize { 0% { background: var(--color-background); } 50% { background: var(--color-background-hover); } 100% { background: var(--color-background); } }
-@keyframes ripple { 0% { outline: 0em solid transparent; outline-offset: -0.1em; } 50% { outline: 0.2em solid var(--color-outline); outline-offset: 0.2em; } 100% { outline: 0.4em solid transparent; outline-offset: 0.4em; } }
 
 
 /* Body state classes control popup min-height behavior */
 /* loader removed: keep layout classes for future use */
 /* body.loader-on { min-height: 650px; } */
-body.no-analysis { min-height: 650px; }
-body.has-analysis { min-height: 650px; }
+body.no-analysis { min-height: 500px; }
+body.has-analysis { min-height: 500px; }
 
-/* When loader/splash is active ensure minimum large height (requested 600px) */
+/* When loader/splash is active ensure fixed height */
 /* disable scrolling while splash is active */
 /* loader removed so only splash-active remains meaningful */
-#splash { min-height: 600px; }
+#splash { 
+  min-height: 550px;
+  max-height: 550px;
+  height: 550px;
+  min-width: 500px;
+  max-width: 500px;
+  width: 500px;
+}
 body.splash-active { overflow: hidden; }
 
 /* Layout helpers for stacked text: we'll position and animate title/welcome/tagline so they move to sit 40px apart */
@@ -136,30 +378,131 @@ body.splash-active { overflow: hidden; }
 #splashInner { --stacked-offset: 0px; }
 #splashTitle, #splashWelcome, #splashTagline { transition: transform 420ms cubic-bezier(.2,.9,.2,1), opacity 360ms ease; }
 
-/* When logo moves, we add .logo-moved which triggers transform offsets for stacked layout.
-  We'll compute transforms in JS to set exact pixel distances (40px), but provide a fallback here. */
-.logo-moved #splashTitle { opacity:1; transform: translateY(calc(-80px + var(--stacked-offset))); }
-.logo-moved #splashWelcome { opacity:1; transform: translateY(calc(-80px + var(--stacked-offset) + var(--splash-gap))); }
-.logo-moved #splashTagline { opacity:1; transform: translateY(calc(-80px + var(--stacked-offset) + (var(--splash-gap) * 2))); }
+/* When logo moves, we add .logo-moved which triggers transform offsets for stacked layout. */
+.logo-moved #splashTitle { opacity:1; transform: translateY(calc(-40px + var(--stacked-offset))); }
+
+.list-container {
+  position: relative;
+  width: 100%;
+}
+
+.list-headers {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f5f5f7;
+  padding: 8px 12px;
+  display: grid;
+  grid-template-columns: 80px minmax(200px, 1fr) 60px 40px;
+  gap: 8px;
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+  border-bottom: 1px solid #e6e6ec;
+  align-items: center;
+  margin-bottom: 8px;
+}
 
 #gamesList {
   list-style: none;
   padding: 0;
-  max-height: 260px;
-  overflow-y: auto;
+  padding-bottom: 5px;
+  width: 100%;
   scroll-behavior: smooth;
 }
 
 #gamesList li {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 8px;
   cursor: pointer;
+  transition: all .12s ease;
+  background: #ffffff;
+  color: #000000;
   border-radius: 8px;
-  transition: background .12s ease;
+  box-shadow: 0 1px 4px rgba(20,20,40,0.04);
 }
 
-#gamesList li:hover {
-  background: #f6f7fb;
+.game-wrapper:hover {
+  background: #f5f5f5;
+}
+
+#gamesList li.selected .game-wrapper {
+  background: #f7fff5;
+}
+
+.game-header {
+  display: grid;
+  grid-template-columns: 80px minmax(200px, 1fr) 60px 40px;
+  gap: 8px;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.time-control {
+  text-align: left;
+}
+
+.result {
+  margin: 0 auto;
+}
+
+.date {
+  color: #000000;
+  font-size: 11px;
+  min-width: 80px;
+}
+
+.players {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.player {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.player .rating {
+  font-size: 12px;
+  color: #444;
+}
+
+.vs-divider {
+  color: #000000;
+  font-size: 12px;
+  margin: 0 4px;
+}
+
+.time-control {
+  color: #000000;
+  font-size: 13px;
+  width: 60px;
+  text-align: left;
+  font-weight: 500;
+}
+
+.result {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.result.win {
+  background-image: url('icons/won.png');
+}
+
+.result.loss {
+  background-image: url('icons/lost.png');
+}
+
+.result.draw {
+  background-image: url('icons/draw.png');
 }
 
 /* progress UI removed; overlay uses the new Uiverse loader */
@@ -181,10 +524,48 @@ controls-inline select { width:120px; appearance:none; background:#fff; padding:
 .controls-inline.centered { justify-content:center; width:100%; max-width:480px; }
 .fetch-wrap { margin-top:12px; display:flex; justify-content:center; width:100%; }
 .button-row { display:flex; gap:10px; align-items:center; }
-.results-header { display:flex; justify-content:space-between; align-items:center; }
-.clear-dustbin { background: transparent; border: none; color: #c62828; cursor: pointer; width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; }
-.clear-dustbin:hover { background: rgba(198,40,40,0.06); }
-.clear-dustbin svg { width:14px; height:14px; }
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e6e6ec;
+}
+
+.results-header h3 {
+  font-size: 18px;
+  margin: 0;
+  color: #111;
+}
+
+/* Clear button removed */
+
+/* Analysis results transitions */
+#results {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#results:not(.hidden) {
+  opacity: 1;
+  transform: none;
+}
+
+/* Board container transitions */
+#boardContainer {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#boardContainer:not(.hidden) {
+  opacity: 1;
+  transform: none;
+}
 .small-arrow { background: transparent; border: 1px solid #e6e6ec; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 14px; height: 34px; width: 34px; display:inline-flex; align-items:center; justify-content:center; }
 .small-arrow:hover { background: #f6f7fb; }
 .cssbuttons-io-button.alt { background: #fff; color: #333; box-shadow: none; border: 1px solid #e6e6ec; }
@@ -219,10 +600,10 @@ controls-inline select { width:120px; appearance:none; background:#fff; padding:
 #results th:first-child { width:36px; }
 #results td:first-child { text-align:center; }
 
-.player-label { font-size:11px; color:#666; margin-bottom:2px; }
+.player-label { font-size:11px; color:#000000; margin-bottom:2px; }
 .player-name { font-size:13px; font-weight:700; }
-.player-elo { font-size:12px; color:#333; margin-top:4px; }
-.game-elo { font-size:11px; color:#666; }
+.player-elo { font-size:10px; color:#000000; margin-top:2px; text-align: center; }
+.game-elo { font-size:10px; color:#000000; text-align: center; }
 
 /* Overlay that blocks clicks during analysis */
 #analysisOverlay {
@@ -275,8 +656,33 @@ body.overlay-active #mainUI { filter: blur(6px) grayscale(.02); pointer-events: 
 
 /* Chessboard area */
 #boardContainer { margin-top: 12px; border-radius: 10px; padding: 10px; background: #fff; box-shadow: 0 6px 18px rgba(10,12,24,0.06); display:flex; flex-direction:column; align-items:center; }
-#boardControls { display:flex; gap:8px; margin-bottom:8px; }
-#boardControls { display:flex; gap:16px; margin:8px auto 12px auto; justify-content:center; }
+#boardControls { 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px auto 12px auto;
+}
+
+.button-container {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+#boardControls button {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+#boardControls button:hover {
+  background-color: #f5f5f5;
+}
+
+#boardControls .keyboard-hint {
+  font-size: 11px;
+  color: #666;
+}
 #chessboard { position: relative; width: 420px; height: 420px; background: linear-gradient(180deg,#f7f7f9,#fff); border-radius:10px; display:flex; align-items:center; justify-content:center; }
 .board-nav { cursor: pointer; background: #fff; border: 1px solid #e6e6ec; padding: 8px 12px; border-radius: 8px; }
 .board-nav:hover { background: #f5f6f8; }
@@ -284,13 +690,77 @@ body.overlay-active #mainUI { filter: blur(6px) grayscale(.02); pointer-events: 
 .mini-board { position: relative; pointer-events: none; }
 #chessboard { position: relative; width: 420px; height: 420px; background: linear-gradient(180deg,#efefef,#ffffff); border-radius:10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
 #boardOverlay { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 10; }
-/* Lichess-like arrow styling: thin, slightly translucent green with small head */
-.arrow-path { stroke: rgba(38,166,91,0.98); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0.98; }
-.arrow-head { fill: rgba(38,166,91,0.98); stroke: none; filter: drop-shadow(0 1px 0 rgba(0,0,0,0.06)); }
-.dest-highlight { display: none !important; }
-#moveInfo { display:flex; flex-direction:column; gap:4px; margin-bottom:8px; }
-.move-type { font-weight:700; color:#c62828; }
-.move-reason { font-size:12px; color:#555; }
+/* Arrow styling */
+.arrow-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 11;
+}
+
+.move-arrow {
+  position: absolute;
+  pointer-events: none;
+}
+
+.move-arrow path {
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.move-arrow.best-move path {
+  stroke: rgba(34, 139, 34, 0.85);
+  /* Darker forest green color for best moves */
+}
+
+.move-arrow.actual-move path {
+  stroke: rgba(255, 153, 0, 0);
+  /* Orange color for actual moves */
+}
+
+.move-arrow-head {
+  fill: currentColor;
+  stroke: none;
+}
+
+#moveInfo { 
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0;
+  text-align: center;
+  width: 100%;
+}
+.move-type { 
+  font-weight: 700;
+  color: #c62828;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.move-type img {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.move-type.result {
+  color: #333;
+  font-size: 18px;
+  text-transform: none;
+  margin: 8px auto;
+  max-width: 80%;
+  padding: 8px;
+  justify-content: center;
+}
 
 /* mini-board squares and piece styling */
 .mini-board .sq { width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; }
@@ -333,9 +803,99 @@ body.overlay-active #mainUI { filter: blur(6px) grayscale(.02); pointer-events: 
 /* Slight board bevel like Lichess */
 #chessboard { border-radius:8px; box-shadow: 0 4px 18px rgba(11,11,12,0.06); border: 1px solid rgba(16,22,26,0.06); }
 
-/* Summary table that sits above the board */
-.summary-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(10,12,24,0.06); }
-.summary-table thead th { font-weight:700; font-size:12px; padding:8px 6px; text-align:left; color:#333; background: linear-gradient(180deg,#fbfff9,#f7fff5); }
+/* Summary table styling */
+#gameInfoWrapper {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  margin-bottom: 16px;
+}
+
+#gameInfoWrapper:not(.hidden) {
+  opacity: 1;
+  transform: none;
+}
+
+.game-info {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.back-button:hover {
+  background: #f5f5f5;
+}
+
+.game-players {
+  padding: 0 36px;
+}
+
+.game-players {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.game-time {
+  font-size: 13px;
+  color: #666;
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+#summaryWrapper {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#summaryWrapper:not(.hidden) {
+  opacity: 1;
+  transform: none;
+}
+
+.summary-table thead th {
+  font-weight: 700;
+  font-size: 12px;
+  padding: 12px 8px;
+  text-align: center;
+  color: #333;
+  background: linear-gradient(180deg,#fbfff9,#f7fff5);
+  border-bottom: 1px solid #e6e6ec;
+}
 .summary-table tbody td { padding:8px 6px; font-size:13px; color:#222; text-align:center; border-top:1px solid #f0f0f2; }
 .summary-table tbody td:first-child { text-align:left; font-weight:700; }
 .summary-table td[title] { cursor: help; }
@@ -556,7 +1116,136 @@ body.overlay-active #mainUI { filter: blur(6px) grayscale(.02); pointer-events: 
 .game-item { transition: transform .12s ease, box-shadow .12s ease; }
 .game-item:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(10,12,24,0.08); }
 
+.analysis-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: #f7f8fa;
+  border-top: 1px solid #e6e6ec;
+  margin-top: 8px;
+  border-radius: 0 0 8px 8px;
+  gap: 12px;
+}
+
+.analysis-controls.hidden {
+  display: none;
+}
+
+.depth-control {
+  width: 100%;
+  max-width: 400px;
+}
+
+.analyze-arrow {
+  background: linear-gradient(90deg,#4caf50,#2e9b4a);
+  color: white;
+  border: none;
+  border-radius: 36px;
+  width: 75px;
+  height: 30px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-top: 4px;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.analyze-arrow:hover {
+  transform: scale(1.1);
+  filter: brightness(1.1);
+}
+
+.styled-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 36px;
+  background: #e6e6ec;
+  outline: none;
+}
+
+.styled-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4caf50;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(76,175,80,0.2);
+  transition: background-color 0.2s, box-shadow 0.2s, all 0.2s ease-in-out;
+}
+
+.styled-slider::-webkit-slider-thumb:hover {
+  background: #43a047;
+  box-shadow: 0 1px 6px rgba(76,175,80,0.4);
+  transform: scale(1.3);
+}
+
+.slider-control {
+  width: 100%;
+  padding: 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.slider-with-value {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+}
+
+.depth-value {
+  font-size: 13px;
+  color: #4caf50;
+  font-weight: 600;
+  min-width: 24px;
+  text-align: right;
+}
+
+.slider-hints {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+  padding: 0 6px;
+}
+
+.slider-hints span {
+  flex: 1;
+  padding: 0 160px;
+  white-space: nowrap;
+}
+
+.game-wrapper {
+  padding: 8px 0;
+  margin: 0;
+}
+
 /* Pixel loader removed: UI will show splash immediately. */
+
+/* Analysis screen elements should be hidden by default and when games list is visible */
+.analysis-element {
+  display: none;
+}
+
+.analysis-element:not(.hidden) {
+  display: block;
+}
+
+/* When games list is visible, ensure analysis elements are hidden */
+#gamesList:not([style*="display: none"]) ~ .analysis-element {
+  display: none !important;
+}
 
 /* Make icons/images non-draggable and reduce ability to save via context menu */
 img { -webkit-user-drag: none; -webkit-user-select: none; user-select: none; }
@@ -608,7 +1297,7 @@ button:disabled {
 }
 
 .players { font-size: 13px; }
-.meta { font-size: 11px; color: #666; margin-top: 4px; }
+.meta { font-size: 11px; color: #000000; margin-top: 4px; }
 .winner { font-size: 11px; color: #444; margin-top: 4px; }
 
 /* Icon placeholders (replace with real icons later) */
