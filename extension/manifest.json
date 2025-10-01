@@ -8,7 +8,9 @@
     "https://api.chess.com/*",
     "https://lichess.org/*",
     "https://www.chess.com/*",
-    "http://localhost:8000/*"
+    "http://localhost:8000/*",
+    "https://chessgod-backend-wa2i.onrender.com/*",
+    "https://chessgod-backend-wa2i.onrender.com"
   ],
   "action": {
     "default_popup": "popup.html",
