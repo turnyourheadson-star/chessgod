@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ChessGod</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Gothic+Expanded+One&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- pixel loader removed; splash will show immediately -->
+
+  <!-- New Splash Intro (always first) -->
+  <div id="splash" aria-live="polite">
+    <div id="splashInner">
+      <div id="splashLogoWrap">
+        <img id="splashLogo" src="icons/icon128.png" alt="ChessGod logo" />
+      </div>
+      <h1 id="splashTitle" aria-hidden="true"><span id="splashTitleText"></span></h1>
+      <p id="splashTagline" aria-hidden="true">From Blunder to Brilliance!</p>
+      <h2 id="splashWelcome" aria-hidden="true"></h2>
+      <!-- From Uiverse.io by Li-Deheng -->
+      <button id="splashNext" class="button" aria-label="Continue to app">
+        <span>Continue</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 66 43">
+          <polygon points="39.58,4.46 44.11,0 66,21.5 44.11,43 39.58,38.54 56.94,21.5"></polygon>
+          <polygon points="19.79,4.46 24.32,0 46.21,21.5 24.32,43 19.79,38.54 37.15,21.5"></polygon>
+          <polygon points="0,4.46 4.53,0 26.42,21.5 4.53,43 0,38.54 17.36,21.5"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="mainUI" class="hidden" aria-hidden="true">
+    <div class="title-block">
+      <img src="icons/icon128.png" id="appIcon" alt="ChessGod" />
+      
+      <h1 class="app-title">ChessGod</h1>
+    </div>
+    <div class="controls-wrap">
+      <div class="controls-inline centered">
+        <!-- Animated input -->
+        <div class="form-control">
+          <input id="username" type="text" required="" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="none" />
+          <label aria-hidden="true">
+            <span style="transition-delay:0ms">U</span><span style="transition-delay:50ms">s</span><span style="transition-delay:100ms">e</span><span style="transition-delay:150ms">r</span><span style="transition-delay:200ms">n</span><span style="transition-delay:250ms">a</span><span style="transition-delay:300ms">m</span><span style="transition-delay:350ms">e</span>
+          </label>
+        </div>
+
+        <!-- Platform select (chess.com / lichess) -->
+        <div style="display:flex;align-items:center;gap:6px;">
+          <select id="platform" aria-label="Platform">
+            <option value="chesscom">Chess.com</option>
+            <option value="lichess">Lichess</option>
+          </select>
+          <button id="platformArrow" class="small-arrow" title="Fetch Games from selected platform" aria-label="Fetch for platform">➜</button>
+        </div>
+        
+      </div>
+
+      <!-- Analysis depth slider -->
+      <div class="controls-inline centered" style="margin-top:8px;">
+        <div class="slider-control">
+          <label for="depth">Analysis Depth</label>
+          <span id="depthValue">15</span>
+          <div class="slider-with-value">
+            <input type="range" id="depth" min="5" max="25" value="15" class="styled-slider" />
+          </div>
+          <div class="slider-hints">
+            <span>Faster</span>
+            <span>Deeper</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fetch controls: small arrow triggers fetching for selected platform -->
+      <div class="fetch-wrap">
+        <div class="button-row">
+          
+          <!-- Fetch triggered by the arrow next to the platform select -->
+        </div>
+      </div>
+    </div>
+
+    <ul id="gamesList"></ul>
+
+    <!-- Analyze button shown when a game is selected -->
+    <div id="analyzeAction" class="hidden">
+      <button id="analyzeSelected" class="cssbuttons-io-button">Analyze Selected Game</button>
+    </div>
+    <div id="results" class="hidden"></div>
+    <!-- Horizontal summary table (3 rows x 10 columns) placed before the chessboard -->
+    <div id="summaryWrapper" class="hidden" style="width:100%; margin-top:12px;">
+      <table id="summaryTable" class="summary-table" aria-label="Game summary">
+        <colgroup>
+          <col style="width:12%" />
+          <col style="width:9%" />
+          <col style="width:9%" />
+          <col style="width:9%" />
+          <col style="width:9%" />
+          <col style="width:9%" />
+          <col style="width:9%" />
+          <col style="width:9%" />
+          <col style="width:9%" />
+          <col style="width:15%" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Move</th>
+            <th title="Brilliant"><img src="icons/brilliant.png" class="summary-icon" alt="Brilliant"/></th>
+            <th title="Great"><img src="icons/great.png" class="summary-icon" alt="Great"/></th>
+            <th title="Best"><img src="icons/best.png" class="summary-icon" alt="Best"/></th>
+            <th title="Excellent"><img src="icons/excellent.png" class="summary-icon" alt="Excellent"/></th>
+            <th title="Good"><img src="icons/good.png" class="summary-icon" alt="Good"/></th>
+            <th title="Inaccuracy"><img src="icons/inaccuracy.png" class="summary-icon" alt="Inaccuracy"/></th>
+            <th title="Mistake"><img src="icons/mistake.png" class="summary-icon" alt="Mistake"/></th>
+            <th title="Blunder"><img src="icons/blunder.png" class="summary-icon" alt="Blunder"/></th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>White</td>
+            <td id="white-brilliant">0</td>
+            <td id="white-great">0</td>
+            <td id="white-best">0</td>
+            <td id="white-excellent">0</td>
+            <td id="white-good">0</td>
+            <td id="white-inaccuracy">0</td>
+            <td id="white-mistake">0</td>
+            <td id="white-blunder">0</td>
+            <td id="white-total">0</td>
+          </tr>
+          <tr>
+            <td>Black</td>
+            <td id="black-brilliant">0</td>
+            <td id="black-great">0</td>
+            <td id="black-best">0</td>
+            <td id="black-excellent">0</td>
+            <td id="black-good">0</td>
+            <td id="black-inaccuracy">0</td>
+            <td id="black-mistake">0</td>
+            <td id="black-blunder">0</td>
+            <td id="black-total">0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Chessboard preview that appears after analysis completes (before stats) -->
+    <div id="boardContainer" class="hidden">
+      <div id="boardHeader" class="board-player-labels" style="text-align:center;margin-bottom:6px;">
+        <div id="boardBlackPlayer" class="player-top" style="font-weight:700;font-size:13px;color:#222;">&nbsp;</div>
+      </div>
+      <div id="chessboard" aria-hidden="false">
+        <!-- SVG overlay for arrows (drawn dynamically) -->
+        <svg id="boardOverlay" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <div id="boardFooter" class="board-player-labels" style="text-align:center;margin-top:8px;">
+        <div id="boardWhitePlayer" class="player-bottom" style="font-weight:700;font-size:13px;color:#222;margin-bottom:6px;">&nbsp;</div>
+      </div>
+      <div id="boardControls">
+        <button id="prevMove" title="Previous move" disabled class="board-nav">◀</button>
+        <button id="nextMove" title="Next move" disabled class="board-nav">▶</button>
+      </div>
+      <div id="boardGameType" style="text-align:center;font-size:12px;color:#666;margin-top:6px;">&nbsp;</div>
+      <div id="moveInfo">
+        <div id="moveType" class="move-type">&nbsp;</div>
+        <!-- moveReason removed per request (fluff text) -->
+      </div>
+    </div>
+
+    
+
+  </div>
+
+  <!-- Overlay placed outside mainUI so it is not blurred when mainUI is blurred -->
+  <div id="analysisOverlay" class="hidden">
+    <div class="overlay-content">
+      <!-- From Uiverse.io by Nawsome -->
+      <div class="banter-loader">
+        <div class="banter-loader__box"></div>
+        <div class="banter-loader__box"></div>
+        <div class="banter-loader__box"></div>
+        <div class="banter-loader__box"></div>
+        <div class="banter-loader__box"></div>
+        <div class="banter-loader__box"></div>
+        <div class="banter-loader__box"></div>
+        <div class="banter-loader__box"></div>
+        <div class="banter-loader__box"></div>
+      </div>
+      <div id="analysisProgress" class="analysis-progress">
+        <div id="analysisProgressBar" class="progress-bar"><div id="analysisProgressFill" class="progress-fill" style="width:0%"></div></div>
+        <div id="analysisProgressLabel" class="progress-label">Starting analysis...</div>
+      </div>
+    </div>
+  </div>
+  </div>
+  
+
+  <script src="utils.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

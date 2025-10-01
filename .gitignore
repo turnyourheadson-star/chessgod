@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+env/
+venv/
+ENV/
+.env.bak/
+.venv.bak/
+.pytest_cache/
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Stockfish binary (should be downloaded during deployment)
+stockfish/*.exe
+stockfish/*.dll
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

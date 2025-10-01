@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "ChessGod",
+  "version": "1.0",
+  "description": "Fetch and analyze recent chess games using Stockfish",
+  "permissions": ["storage", "activeTab", "scripting", "tabs"],
+  "host_permissions": [
+    "https://api.chess.com/*",
+    "https://lichess.org/*",
+    "https://www.chess.com/*",
+    "http://localhost:8000/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
+}

@@ -1,0 +1,619 @@
+body {
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+  min-width: 500px;
+  /* default when no analysis and no loader */
+  min-height: 650px;
+  padding: 16px;
+  background: #fbfbfd;
+  color: #0f1720;
+  -webkit-font-smoothing:antialiased;
+  scroll-behavior: smooth;
+  font-weight: 400;
+}
+
+/* --- Splash intro styles --- */
+#splash { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; background: transparent; z-index: 10000; }
+/* Apply background after loader completes if desired */
+.splash-bg { background: linear-gradient(180deg,#ffffff,#f7fbff); }
+#splashInner { text-align:center; padding: 18px; width:100%; display:flex; flex-direction:column; align-items:center; gap:12px; }
+#splashLogoWrap { display:flex; align-items:center; justify-content:center; height:260px; }
+/* slightly smaller logo for better composition */
+#splashLogo { width:220px; height:220px; opacity:0; transform: scale(1.05); transition: opacity 900ms ease, transform 900ms ease; }
+#splashTitle { font-family: 'Special Gothic Expanded One', sans-serif; font-size:28px; margin:0; opacity:0; }
+#splashTitleText { display:inline-block; white-space:nowrap; border-right: 2px solid rgba(0,0,0,0.08); padding-right:6px; }
+#splashWelcome { font-family: 'Poppins', sans-serif; font-size:18px; margin:0; opacity:0; }
+#splashTagline { font-family: 'Poppins', sans-serif; font-size:14px; margin:0; opacity:0; transform: translateY(6px); }
+
+/* logo glide up: after initial fade-in, shrink slightly and move to top center */
+@keyframes logoEntrance {
+  0% { opacity: 0; transform: translateY(0) scale(1.25); }
+  60% { opacity: 1; transform: translateY(-8px) scale(1); }
+  100% { opacity: 1; transform: translateY(-80px) scale(0.74); }
+}
+
+/* subtle fade for text */
+@keyframes fadeInUp { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+
+/* typewriter effect */
+@keyframes typewriter { from { width: 0; } to { width: 100%; } }
+@keyframes blinkCaret { 50% { border-color: transparent; } }
+
+/* tagline punchy entrance */
+@keyframes taglinePunch {
+  0% { opacity:0; transform: scale(0.96) translateY(6px); }
+  60% { opacity:1; transform: scale(1.03) translateY(-4px); }
+  100% { opacity:1; transform: scale(1) translateY(0); }
+}
+
+/* Glowing border animation for Continue (animated stroke around edges) */
+.splash-continue { position: relative; background: linear-gradient(90deg,#fff,#fff); color:#0b1320; padding:10px 18px; border-radius:28px; font-weight:700; border:0; cursor:pointer; min-width:120px; box-shadow: 0 6px 18px rgba(2,6,23,0.06); opacity:0; }
+.splash-continue::before { content: ''; position: absolute; inset: -2px; border-radius: 30px; padding:2px; background: conic-gradient(from 0deg, #8bf56f, #4caf50, #66e07a, #8bf56f); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: xor; -webkit-mask-composite: xor; opacity:0.9; animation: glowRotate 3.4s linear infinite; }
+@keyframes glowRotate { to { transform: rotate(360deg); } }
+
+/* helper classes applied by JS during sequence */
+.logo-faded-in #splashLogo { opacity:1; transform: scale(1); }
+/* ensure the logo moves using transform rather than relying only on keyframes in case of timing jitter */
+.logo-moved #splashLogo { animation: logoEntrance 900ms ease-in-out forwards; transform-origin: center center; }
+
+/* visible helper for the NEXT button when we show it instantly in fallback */
+.visible { opacity: 1 !important; }
+.title-typing #splashTitleText { opacity:1; display:inline-block; overflow:hidden; white-space:nowrap; }
+.title-typed #splashTitleText { border-right: 2px solid transparent; }
+.welcome-visible #splashWelcome { animation: fadeInUp .6s ease forwards; }
+.tagline-visible #splashTagline { animation: taglinePunch .6s cubic-bezier(.2,.9,.2,1) forwards; }
+.continue-visible .splash-continue { animation: fadeInUp .6s ease .12s forwards; }
+
+/* Typewriter specific: we will set inline width via JS to trigger the effect */
+.typewriter-anim { display:inline-block; overflow:hidden; vertical-align:bottom; }
+
+/* From Uiverse.io by Li-Deheng - NEXT button */
+.button {
+  --main-size: 1.15em;
+  --color-text: #ffffff;
+  --color-background: #000000;
+  --color-background-hover: #1a1919;
+  --color-outline: #302f2f40;
+  --color-shadow: #00000040;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  border: none;
+  border-radius: calc(var(--main-size) * 100);
+  padding: 0.33em 0 0.33em 0.66em;
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-size: var(--main-size);
+  color: var(--color-text);
+  background: var(--color-background);
+  box-shadow: 0 0 0.2em 0 var(--color-background);
+  transition: 1s;
+}
+
+.button:active { transform: scale(0.95); }
+
+.button:hover {
+  outline: 0.1em solid transparent;
+  outline-offset: 0.2em;
+  box-shadow: 0 0 1em 0 var(--color-background);
+  animation: ripple 1s linear infinite, colorize 1s infinite;
+  transition: 0.5s;
+}
+
+.button span { margin-right: 0.3em; transition: 0.5s; }
+.button:hover span { text-shadow: 5px 5px 5px var(--color-shadow); }
+.button:active span { text-shadow: none; }
+.button svg { height: 0.8em; fill: var(--color-text); margin-right: -0.16em; position: relative; transition: 0.5s; }
+.button:hover svg { margin-right: 0.66em; transition: 0.5s; filter: drop-shadow(5px 5px 2.5px var(--color-shadow)); }
+.button:active svg { filter: none; }
+.button svg polygon:nth-child(1) { transition: 0.4s; transform: translateX(-60%); }
+.button svg polygon:nth-child(2) { transition: 0.5s; transform: translateX(-30%); }
+.button:hover svg polygon:nth-child(1) { transform: translateX(0%); animation: opacity 1s infinite 0.6s; }
+.button:hover svg polygon:nth-child(2) { transform: translateX(0%); animation: opacity 1s infinite 0.4s; }
+.button:hover svg polygon:nth-child(3) { animation: opacity 1s infinite 0.2s; }
+
+@keyframes opacity { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes colorize { 0% { background: var(--color-background); } 50% { background: var(--color-background-hover); } 100% { background: var(--color-background); } }
+@keyframes ripple { 0% { outline: 0em solid transparent; outline-offset: -0.1em; } 50% { outline: 0.2em solid var(--color-outline); outline-offset: 0.2em; } 100% { outline: 0.4em solid transparent; outline-offset: 0.4em; } }
+
+
+/* Body state classes control popup min-height behavior */
+/* loader removed: keep layout classes for future use */
+/* body.loader-on { min-height: 650px; } */
+body.no-analysis { min-height: 650px; }
+body.has-analysis { min-height: 650px; }
+
+/* When loader/splash is active ensure minimum large height (requested 600px) */
+/* disable scrolling while splash is active */
+/* loader removed so only splash-active remains meaningful */
+#splash { min-height: 600px; }
+body.splash-active { overflow: hidden; }
+
+/* Layout helpers for stacked text: we'll position and animate title/welcome/tagline so they move to sit 40px apart */
+/* Make title sit closer to logo during stack */
+:root { --splash-gap: 22px; }
+#splashInner { --stacked-offset: 0px; }
+#splashTitle, #splashWelcome, #splashTagline { transition: transform 420ms cubic-bezier(.2,.9,.2,1), opacity 360ms ease; }
+
+/* When logo moves, we add .logo-moved which triggers transform offsets for stacked layout.
+  We'll compute transforms in JS to set exact pixel distances (40px), but provide a fallback here. */
+.logo-moved #splashTitle { opacity:1; transform: translateY(calc(-80px + var(--stacked-offset))); }
+.logo-moved #splashWelcome { opacity:1; transform: translateY(calc(-80px + var(--stacked-offset) + var(--splash-gap))); }
+.logo-moved #splashTagline { opacity:1; transform: translateY(calc(-80px + var(--stacked-offset) + (var(--splash-gap) * 2))); }
+
+#gamesList {
+  list-style: none;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+#gamesList li {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background .12s ease;
+}
+
+#gamesList li:hover {
+  background: #f6f7fb;
+}
+
+/* progress UI removed; overlay uses the new Uiverse loader */
+
+.hidden {
+  display: none;
+}
+
+/* Inline controls */
+.app-title { font-family: 'Special Gothic Expanded One', sans-serif; font-size:18px; margin:0px 0 15px 0; letter-spacing:0.6px; }
+.title-block { display:flex; flex-direction:column; align-items:center; gap:6px; }
+#appIcon { width:48px; height:48px; }
+.controls-inline { display:flex; gap:10px; align-items:center; margin-bottom:8px; }
+.controls-inline input { flex:1; }
+controls-inline select { width:120px; appearance:none; background:#fff; padding:8px 10px; border-radius:36px; }
+
+/* Centered control wrappers */
+.controls-wrap { display:flex; flex-direction:column; align-items:center; width:100%; }
+.controls-inline.centered { justify-content:center; width:100%; max-width:480px; }
+.fetch-wrap { margin-top:12px; display:flex; justify-content:center; width:100%; }
+.button-row { display:flex; gap:10px; align-items:center; }
+.results-header { display:flex; justify-content:space-between; align-items:center; }
+.clear-dustbin { background: transparent; border: none; color: #c62828; cursor: pointer; width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; }
+.clear-dustbin:hover { background: rgba(198,40,40,0.06); }
+.clear-dustbin svg { width:14px; height:14px; }
+.small-arrow { background: transparent; border: 1px solid #e6e6ec; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 14px; height: 34px; width: 34px; display:inline-flex; align-items:center; justify-content:center; }
+.small-arrow:hover { background: #f6f7fb; }
+.cssbuttons-io-button.alt { background: #fff; color: #333; box-shadow: none; border: 1px solid #e6e6ec; }
+.cssbuttons-io-button.alt:hover { filter: none; }
+.cssbuttons-io-button[disabled], .cssbuttons-io-button.disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+
+/* fetchGames button removed */
+
+/* Animated input (Uiverse by liyaxu123) adapted to our colors */
+.form-control { position: relative; margin: 0 6px 0 0; width: 240px; }
+.form-control input { background-color: transparent; border: 0; border-bottom: 2px #ddd solid; display: block; width: 100%; padding: 12px 0; font-size: 14px; color: #111; }
+.form-control input:focus, .form-control input:valid { outline: 0; border-bottom-color: #66b266; }
+.form-control label { position: absolute; top: 12px; left: 0; pointer-events: none; }
+.form-control label span { display: inline-block; font-size: 14px; min-width: 5px; color: #666; transition: 0.18s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+/* Move label up when input is focused/valid OR when .form-control has .filled */
+.form-control input:focus+label span, .form-control input:valid+label span, .form-control.filled label span { color: #66b266; transform: translateY(-24px); }
+
+/* Fetch button style (Uiverse by adamgiebl) adapted to our green palette */
+/* Large fetch button removed; compact arrow used instead */
+.cssbuttons-io-button { /* ensure analyze button is visible when present */ display: inline-flex; align-items:center; justify-content:center; background: linear-gradient(90deg,#4caf50,#2e9b4a); color: white; padding: 10px 14px; border: none; box-shadow: 0 6px 18px rgba(46,155,74,0.18); cursor: pointer; border-radius: 28px; font-weight: 700; }
+.cssbuttons-io-button:hover { filter: brightness(.98); }
+
+/* Platform switch (Uiverse by Shoh2008) adapted */
+.checkbox-wrapper-41 { --size: 80px; display:inline-block; }
+.checkbox-wrapper-41 input[type="checkbox"] { appearance: none; -webkit-appearance: none; width: var(--size); height: calc(var(--size) / 2); background-color: #fff; border: 3px solid #2b2b2b; border-radius: 30px 100px 100px 100px; box-shadow: 0 6px 12px rgba(0,0,0,0.12); outline: none; cursor: pointer; position: relative; transition: all 0.5s; }
+.checkbox-wrapper-41 input[type="checkbox"]::before { content: ""; position: absolute; width: calc(var(--size) / 2); height: calc(var(--size) / 2); left: 0; top: 50%; transform: translateY(-50%) scale(0.7); border: 3px solid #2b2b2b; border-radius: 30px 100px 100px 100px; background-color: #fff; box-sizing: border-box; transition: all 0.5s; }
+.checkbox-wrapper-41 input[type="checkbox"]:checked { background-color: #fff; border-radius: 100px 100px 30px 100px; }
+.checkbox-wrapper-41 input[type="checkbox"]:checked::before { left: 50%; background-color: #4caf50; border-radius: 100px 100px 30px 100px; }
+
+#results th { font-weight:600; font-size:12px; }
+#results td { font-weight:400; }
+#results th:first-child { width:36px; }
+#results td:first-child { text-align:center; }
+
+.player-label { font-size:11px; color:#666; margin-bottom:2px; }
+.player-name { font-size:13px; font-weight:700; }
+.player-elo { font-size:12px; color:#333; margin-top:4px; }
+.game-elo { font-size:11px; color:#666; }
+
+/* Overlay that blocks clicks during analysis */
+#analysisOverlay {
+  position: fixed;
+  inset: 0 0 0 0;
+  background: rgba(10,12,24,0.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 99999;
+  pointer-events: auto;
+}
+#analysisOverlay .overlay-content { filter: none; backdrop-filter: none; }
+
+#analysisOverlay.hidden { display:none; }
+
+.overlay-content { background: rgba(255,255,255,0.98); padding: 16px 18px; border-radius: 10px; display:flex; gap:12px; align-items:center; box-shadow:0 6px 20px rgba(10,12,24,0.12); }
+.overlay-text { font-size: 13px; color:#111; }
+.spinner { width: 22px; height:22px; border-radius:50%; border: 3px solid #e6e9ee; border-top-color: #4caf50; animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* New banter loader (Uiverse by Nawsome) */
+.banter-loader { position: relative; width: 72px; height: 72px; display: flex; flex-wrap: wrap; gap:6px; }
+.banter-loader__box { position: relative; width: 20px; height: 20px; }
+.banter-loader__box:before { content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: #4caf50; border-radius:4px; }
+.banter-loader__box:nth-child(3n) { margin-right: 0; }
+
+/* Animate boxes (simplified by staggering transforms) */
+.banter-loader__box { animation: banter-move 1.2s infinite ease-in-out; }
+.banter-loader__box:nth-child(odd) { animation-delay: 0s; }
+.banter-loader__box:nth-child(even) { animation-delay: 0.15s; }
+@keyframes banter-move { 0% { transform: translateY(0); } 50% { transform: translateY(-6px); } 100% { transform: translateY(0); } }
+
+/* Progress bar inside overlay */
+.analysis-progress { width: 220px; margin-left: 12px; display:flex; flex-direction:column; gap:8px; }
+.progress-bar { width: 100%; height: 10px; background: #f0f0f3; border-radius: 6px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg,#4caf50,#2e9b4a); width: 0%; transition: width .16s linear; }
+.progress-label { font-size: 12px; color:#333; }
+
+/* When overlay visible, blur main content and disable pointer events */
+body.overlay-active #mainUI { filter: blur(6px) grayscale(.02); pointer-events: none; }
+/* When overlay visible, blur main content behind it, but keep overlay content crisp */
+
+
+/* Games list selected state */
+#gamesList li.selected { border: 2px solid #4caf50; border-radius: 10px; background: linear-gradient(180deg, #fbfff9, #f7fff5); }
+
+#analyzeAction { display:flex; justify-content:center; margin-top:8px; }
+#analyzeAction button { min-width:160px; }
+
+/* Chessboard area */
+#boardContainer { margin-top: 12px; border-radius: 10px; padding: 10px; background: #fff; box-shadow: 0 6px 18px rgba(10,12,24,0.06); display:flex; flex-direction:column; align-items:center; }
+#boardControls { display:flex; gap:8px; margin-bottom:8px; }
+#boardControls { display:flex; gap:16px; margin:8px auto 12px auto; justify-content:center; }
+#chessboard { position: relative; width: 420px; height: 420px; background: linear-gradient(180deg,#f7f7f9,#fff); border-radius:10px; display:flex; align-items:center; justify-content:center; }
+.board-nav { cursor: pointer; background: #fff; border: 1px solid #e6e6ec; padding: 8px 12px; border-radius: 8px; }
+.board-nav:hover { background: #f5f6f8; }
+#boardHeader, #boardFooter { width: 100%; display:flex; justify-content:center; }
+.mini-board { position: relative; pointer-events: none; }
+#chessboard { position: relative; width: 420px; height: 420px; background: linear-gradient(180deg,#efefef,#ffffff); border-radius:10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
+#boardOverlay { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 10; }
+/* Lichess-like arrow styling: thin, slightly translucent green with small head */
+.arrow-path { stroke: rgba(38,166,91,0.98); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0.98; }
+.arrow-head { fill: rgba(38,166,91,0.98); stroke: none; filter: drop-shadow(0 1px 0 rgba(0,0,0,0.06)); }
+.dest-highlight { display: none !important; }
+#moveInfo { display:flex; flex-direction:column; gap:4px; margin-bottom:8px; }
+.move-type { font-weight:700; color:#c62828; }
+.move-reason { font-size:12px; color:#555; }
+
+/* mini-board squares and piece styling */
+.mini-board .sq { width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; }
+.mini-board { box-shadow: none; border-radius:6px; overflow:hidden; }
+.mini-board .sq { width: 100%; height: 100%; display:flex; align-items:center; justify-content:center; }
+.mini-board .sq.light { background: #f0d9b5; }
+.mini-board .sq.dark { background: #b58863; }
+.mini-board .piece { font-size: 44px; line-height: 1; font-family: 'Segoe UI Symbol', 'Noto Color Emoji', 'Poppins', serif; text-shadow: 0 1px 0 rgba(255,255,255,0.2); }
+
+.mini-board .sq { position: relative; overflow: hidden; }
+
+/* Use background images for pieces so they always center and scale uniformly */
+.mini-board .sq.has-piece { background-repeat: no-repeat; background-position: center center; background-size: contain; }
+.mini-board .sq.has-piece .piece { display: none; }
+
+/* Highlight overlays for move-from and move-to squares (Lichess-like) */
+/* We use a pseudo-element so we can overlay a translucent color without disturbing the
+   background-image used for pieces. The pseudo-element sits above the square background
+   but below the SVG overlay (arrows), and uses pointer-events: none so it doesn't block
+   keyboard/mouse navigation (board is display-only anyway). */
+.mini-board .sq::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 0; /* keep square corners flush */
+  transition: background-color 120ms ease;
+}
+
+/* Light highlight for the source square */
+.mini-board .sq.highlight-from::after {
+  background: rgba(197, 195, 195, 0.555); /* soft pale yellow */
+}
+
+/* Stronger highlight for the destination square */
+.mini-board .sq.highlight-to::after {
+  background: rgba(65, 65, 65, 0.61); /* richer yellow/orange */
+}
+
+/* Slight board bevel like Lichess */
+#chessboard { border-radius:8px; box-shadow: 0 4px 18px rgba(11,11,12,0.06); border: 1px solid rgba(16,22,26,0.06); }
+
+/* Summary table that sits above the board */
+.summary-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(10,12,24,0.06); }
+.summary-table thead th { font-weight:700; font-size:12px; padding:8px 6px; text-align:left; color:#333; background: linear-gradient(180deg,#fbfff9,#f7fff5); }
+.summary-table tbody td { padding:8px 6px; font-size:13px; color:#222; text-align:center; border-top:1px solid #f0f0f2; }
+.summary-table tbody td:first-child { text-align:left; font-weight:700; }
+.summary-table td[title] { cursor: help; }
+
+.summary-icon { width:20px; height:20px; vertical-align:middle; }
+
+/* overlay content should be a white rounded box centered */
+.overlay-content { flex-direction: column; align-items: center; justify-content: center; padding: 18px; }
+.analysis-progress { margin-top: 12px; }
+
+/* Overlay progress area */
+/* From Uiverse.io by Praashoo7 - loader styles (scoped to overlay-content) */
+.overlay-content .main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.overlay-content .loaders,
+.overlay-content .loadersB {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.overlay-content .loader {
+  position: absolute;
+  width: 1.15em;
+  height: 13em;
+  border-radius: 50px;
+  background: #e0e0e0;
+}
+.overlay-content .loader:after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.15em;
+  height: 5em;
+  background: #e0e0e0;
+  border-radius: 50px;
+  border: 1px solid #e2e2e2;
+  box-shadow:
+    inset 5px 5px 15px #d3d2d2ab,
+    inset -5px -5px 15px #e9e9e9ab;
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 48px),
+    transparent 100%
+  );
+}
+.overlay-content .loader::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 1.15em;
+  height: 4.5em;
+  background: #e0e0e0;
+  border-radius: 50px;
+  border: 1px solid #e2e2e2;
+  box-shadow:
+    inset 5px 5px 15px #d3d2d2ab,
+    inset -5px -5px 15px #e9e9e9ab;
+  mask-image: linear-gradient(
+    to top,
+    black calc(100% - 48px),
+    transparent 100%
+  );
+}
+.overlay-content .loaderA {
+  position: absolute;
+  width: 1.15em;
+  height: 13em;
+  border-radius: 50px;
+  background: transparent;
+}
+.overlay-content .ball0,
+.overlay-content .ball1,
+.overlay-content .ball2,
+.overlay-content .ball3,
+.overlay-content .ball4,
+.overlay-content .ball5,
+.overlay-content .ball6,
+.overlay-content .ball7,
+.overlay-content .ball8,
+.overlay-content .ball9 {
+  width: 1.15em;
+  height: 1.15em;
+  box-shadow:
+    rgba(0, 0, 0, 0.17) 0px -10px 10px 0px inset,
+    rgba(0, 0, 0, 0.15) 0px -15px 15px 0px inset,
+    rgba(0, 0, 0, 0.1) 0px -40px 20px 0px inset,
+    rgba(0, 0, 0, 0.06) 0px 2px 1px,
+    rgba(0, 0, 0, 0.09) 0px 4px 2px,
+    rgba(0, 0, 0, 0.09) 0px 8px 4px,
+    rgba(0, 0, 0, 0.09) 0px 16px 8px,
+    rgba(0, 0, 0, 0.09) 0px 32px 16px,
+    0px -1px 15px -8px rgba(0, 0, 0, 0.09);
+  border-radius: 50%;
+  transition: transform 800ms cubic-bezier(1, -0.4, 0, 1.4);
+  background-color: rgb(232, 232, 232, 1);
+  animation: 3.63s move ease-in-out infinite;
+}
+.overlay-content .loader:nth-child(2) { transform: rotate(20deg); }
+.overlay-content .loader:nth-child(3) { transform: rotate(40deg); }
+.overlay-content .loader:nth-child(4) { transform: rotate(60deg); }
+.overlay-content .loader:nth-child(5) { transform: rotate(80deg); }
+.overlay-content .loader:nth-child(6) { transform: rotate(100deg); }
+.overlay-content .loader:nth-child(7) { transform: rotate(120deg); }
+.overlay-content .loader:nth-child(8) { transform: rotate(140deg); }
+.overlay-content .loader:nth-child(9) { transform: rotate(160deg); }
+.overlay-content .loaderA:nth-child(2) { transform: rotate(20deg); }
+.overlay-content .loaderA:nth-child(3) { transform: rotate(40deg); }
+.overlay-content .loaderA:nth-child(4) { transform: rotate(60deg); }
+.overlay-content .loaderA:nth-child(5) { transform: rotate(80deg); }
+.overlay-content .loaderA:nth-child(6) { transform: rotate(100deg); }
+.overlay-content .loaderA:nth-child(7) { transform: rotate(120deg); }
+.overlay-content .loaderA:nth-child(8) { transform: rotate(140deg); }
+.overlay-content .loaderA:nth-child(9) { transform: rotate(160deg); }
+.overlay-content .ball1 { animation-delay: 0.2s; }
+.overlay-content .ball2 { animation-delay: 0.4s; }
+.overlay-content .ball3 { animation-delay: 0.6s; }
+.overlay-content .ball4 { animation-delay: 0.8s; }
+.overlay-content .ball5 { animation-delay: 1s; }
+.overlay-content .ball6 { animation-delay: 1.2s; }
+.overlay-content .ball7 { animation-delay: 1.4s; }
+.overlay-content .ball8 { animation-delay: 1.6s; }
+.overlay-content .ball9 { animation-delay: 1.8s; }
+
+@keyframes move { 0% { transform: translateY(0em); } 50% { transform: translateY(12em); } 100% { transform: translateY(0em); } }
+
+/* Slider styling */
+.slider-control {
+  width: 100%;
+  padding: 0 4px;
+}
+
+.slider-control label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.slider-with-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#depthValue {
+  font-size: 13px;
+  color: #4caf50;
+  font-weight: 600;
+  min-width: 24px;
+  text-align: right;
+}
+
+.slider-hints {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* Custom slider styling */
+.styled-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 36px;
+  background: #e6e6ec;
+  outline: none;
+}
+
+.styled-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4caf50;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(76,175,80,0.2);
+  transition: background-color 0.2s, box-shadow 0.2s, all 0.2s ease-in-out;
+}
+
+.styled-slider::-webkit-slider-thumb:hover {
+  background: #43a047;
+  box-shadow: 0 1px 6px rgba(76,175,80,0.4);
+  transform: scale(1.3);
+}
+
+.styled-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4caf50;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(76,175,80,0.2);
+  transition: background-color 0.2s, box-shadow 0.2s, all 0.2s ease-in-out;
+}
+
+.styled-slider::-moz-range-thumb:hover {
+  background: #43a047;
+  box-shadow: 0 1px 6px rgba(76,175,80,0.4);
+  transform: scale(1.3);
+}
+
+/* Fade-in animations */
+.game-item, #results { animation: fadeIn .14s ease both; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform:none; } }
+
+/* Smooth hover transition */
+.game-item { transition: transform .12s ease, box-shadow .12s ease; }
+.game-item:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(10,12,24,0.08); }
+
+/* Pixel loader removed: UI will show splash immediately. */
+
+/* Make icons/images non-draggable and reduce ability to save via context menu */
+img { -webkit-user-drag: none; -webkit-user-select: none; user-select: none; }
+
+/* When loader finishes, mainUI will fade in */
+#mainUI { opacity:0; transform: translateY(6px); transition: opacity .35s ease, transform .35s ease; }
+#mainUI.visible { opacity:1; transform:none; }
+
+#results table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+#results th, #results td {
+  border: 1px solid #f0f0f3;
+  padding: 8px;
+  font-size: 12px;
+  text-align: left;
+}
+
+#results a.move-link {
+  color: #0077cc;
+  text-decoration: none;
+}
+
+#results a.move-link:hover {
+  text-decoration: underline;
+}
+
+/* Buttons and inputs */
+button, input, select {
+  border-radius: 8px;
+  border: 1px solid #e6e6ec;
+  padding: 6px 8px;
+  background: #fff;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.game-item {
+  background: #fff;
+  margin-bottom: 6px;
+  padding: 8px;
+  box-shadow: 0 1px 4px rgba(20,20,40,0.04);
+}
+
+.players { font-size: 13px; }
+.meta { font-size: 11px; color: #666; margin-top: 4px; }
+.winner { font-size: 11px; color: #444; margin-top: 4px; }
+
+/* Icon placeholders (replace with real icons later) */
+.move-icon { width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.king-icon { width: 18px; height: 18px; display: inline-block; vertical-align: middle; }
+
+.game-row { display:flex; flex-direction:column; }
+
